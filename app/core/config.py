@@ -5,7 +5,11 @@ from typing import Optional
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "raf"
-    SQLALCHEMY_DATABASE_URI: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost/dbname")
+    API_V1_STR: str = "/api/v1"
+    SQLALCHEMY_DATABASE_URI: str = os.getenv("DATABASE_URL", "postgresql+asyncpg://admin:admin@localhost/raf_test")
+    # Синхронный URL базы данных для Alembic
+    SQLALCHEMY_SYNC_DATABASE_URI: str = "postgresql+psycopg2://admin:admin@localhost/raf_test"
+
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
