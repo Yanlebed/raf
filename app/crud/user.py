@@ -1,25 +1,30 @@
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash, verify_password
 
 
-def get_user(db: Session, user_id: int):
-    return db.query(User).filter(User.id == user_id).first()
+async def get_some_user(db: AsyncSession, user_id: int):
+    result = await db.execute(select(User).where(User.id == user_id))
+    return result.scalars().first()
 
 
-def get_user_by_phone(db: Session, phone: str):
-    return db.query(User).filter(User.phone == phone).first()
+async def get_user_by_phone(db: AsyncSession, phone: str):
+    result = await db.execute(select(User).where(User.phone == phone))
+    return result.scalars().first()
 
 
-def get_user_by_email(db: Session, email: str) -> Optional[User]:
-    return db.query(User).filter(User.email == email).first()
+async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+    result = await db.execute(select(User).where(User.email == email))
+    return result.scalars().first()
 
 
-def create_user(db: Session, user_in: UserCreate):
-    hashed_password = get_password_hash(user_in.password)
+async def create_new_user(db: AsyncSession, user_in: UserCreate):
+    hashed_password = await get_password_hash(user_in.password)
     db_user = User(
         user_type=user_in.user_type,
         phone=user_in.phone,
@@ -30,35 +35,35 @@ def create_user(db: Session, user_in: UserCreate):
         address=user_in.address
     )
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
 
-def update_user(db: Session, db_user: User, user_in: UserUpdate):
+async def update_some_user(db: AsyncSession, db_user: User, user_in: UserUpdate):
     update_data = user_in.dict(exclude_unset=True)
     if update_data.get("password"):
-        hashed_password = get_password_hash(update_data["password"])
+        hashed_password = await get_password_hash(update_data["password"])
         update_data["hashed_password"] = hashed_password
         del update_data["password"]
     for field, value in update_data.items():
         setattr(db_user, field, value)
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
 
-def delete_user(db: Session, user_id: int):
-    db_user = get_user(db, user_id)
+async def delete_user(db: AsyncSession, user_id: int):
+    db_user = await get_some_user(db, user_id)
     if db_user:
-        db.delete(db_user)
-        db.commit()
+        await db.delete(db_user)
+        await db.commit()
     return db_user
 
 
-def authenticate(db: Session, phone: str, password: str) -> Optional[User]:
-    user = get_user_by_phone(db, phone=phone)
+async def authenticate(db: AsyncSession, phone: str, password: str) -> Optional[User]:
+    user = await get_user_by_phone(db, phone=phone)
     if not user:
         return None
     if not verify_password(password, user.hashed_password):
@@ -66,6 +71,6 @@ def authenticate(db: Session, phone: str, password: str) -> Optional[User]:
     return user
 
 
-
-def get_users(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(User).offset(skip).limit(limit).all()
+async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
+    result = await db.execute(select(User).offset(skip).limit(limit))
+    return result.scalars().all()

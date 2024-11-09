@@ -1,4 +1,3 @@
-
 from typing import Dict
 
 from fastapi import BackgroundTasks
@@ -12,7 +11,7 @@ from app.core.config import settings
 templates = Jinja2Templates(directory=settings.EMAIL_TEMPLATES_DIR)
 
 
-def send_email(
+async def send_email(
     background_tasks: BackgroundTasks,
     subject_template: str = "",
     html_template: str = "",

@@ -23,7 +23,7 @@ async def test_send_email():
 
     try:
         background_tasks = BackgroundTasks()
-        send_email(
+        await send_email(
             background_tasks,
             subject_template="Тестовое письмо",
             html_template="test_email.html",

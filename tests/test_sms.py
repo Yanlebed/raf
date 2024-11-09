@@ -1,13 +1,11 @@
-# tests/test_sms.py
-
 from unittest.mock import patch
-from sqlalchemy.orm import Session
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from app.utils.sms import send_sms_code
 from app.models.phone_verification import PhoneVerification
 
 
-def test_send_sms_code(db: Session, mocker):
+async def test_send_sms_code(db: AsyncSession, mocker):
     phone_number = "+1234567890"
 
     # Мокируем Twilio Client
@@ -15,10 +13,11 @@ def test_send_sms_code(db: Session, mocker):
     mock_messages = mock_twilio_client.return_value.messages
     mock_messages.create.return_value.sid = "SMXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
-    send_sms_code(db, phone_number)
+    await send_sms_code(db, phone_number)
 
     # Проверяем, что код сохранен в базе данных
-    verification = db.query(PhoneVerification).filter_by(phone_number=phone_number).first()
+    verification = await db.execute(select(PhoneVerification).where(PhoneVerification.phone_number == phone_number))
+    verification = verification.scalars().first()
     assert verification is not None
     assert len(verification.verification_code) == 6
 
