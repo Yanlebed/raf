@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8" />
+    <title>raf - Головна</title>
+    <!-- Мета-теги для SEO -->
+    <meta name="description" content="Запишіться на найкращі б'юті-послуги у вашому місті. Стрижки, манікюр, косметологія та багато іншого." />
+    <meta name="keywords" content="б'юті, послуги, стрижка, манікюр, косметологія, запис" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+
+    <!-- Tailwind CSS -->
+    <link href="{{ url_for('static', path='css/styles.css') }}" rel="stylesheet">
+
+    <!-- Font Awesome для іконок -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
+    />
+</head>
+<body class="bg-pantone-663c text-black font-bold">
+
+    <!-- Навігаційна панель -->
+    <nav class="bg-pantone-432c text-pantone-7536c">
+      <div class="container mx-auto flex items-center justify-between p-4">
+        <a class="text-xl" href="#">raf</a>
+
+        <!-- Ви́бор міста -->
+        <div class="relative">
+          <button id="cityDropdown" class="bg-transparent border border-pantone-7536c rounded-full px-4 py-2">
+            Виберіть місто
+          </button>
+          <div id="cityDropdownMenu" class="absolute right-0 mt-2 w-48 bg-pantone-432c rounded-md shadow-lg hidden">
+            <!-- Список міст буде додано динамічно -->
+          </div>
+        </div>
+
+        <!-- Переключатель языка -->
+        <div class="relative ml-4">
+          <button id="languageDropdown" class="border-2 border-pantone-7536c rounded-full w-12 h-12 flex items-center justify-center bg-transparent">
+            <span id="currentLanguage">UA</span>
+          </button>
+          <div class="absolute right-0 mt-2 w-24 bg-pantone-432c rounded-md shadow-lg hidden" id="languageDropdownMenu">
+            <a href="#" class="block px-4 py-2 text-pantone-7536c hover:bg-pantone-7536c hover:text-pantone-432c" data-lang="UA">UA</a>
+            <a href="#" class="block px-4 py-2 text-pantone-7536c hover:bg-pantone-7536c hover:text-pantone-432c" data-lang="RU">RU</a>
+            <a href="#" class="block px-4 py-2 text-pantone-7536c hover:bg-pantone-7536c hover:text-pantone-432c" data-lang="EN">EN</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Главный баннер вместе со строкой поиска и блоками процедур -->
+    <div class="relative">
+      <!-- Баннер -->
+      <div class="main-banner h-64 overflow-hidden">
+        <img src="{{ url_for('static', path='images/main_banner.jpeg') }}" alt="Main Banner" class="w-full h-full object-cover">
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-pantone-432c">
+          <h1 class="text-3xl md:text-5xl">Ти надаєш б'юті послуги? Доєднуйся!</h1>
+          <a href="#apply" class="mt-4 bg-pantone-7536c text-pantone-432c px-6 py-3 rounded-full hover:bg-pantone-7536c/80">Заповнити заявку</a>
+        </div>
+      </div>
+
+      <!-- Поле пошуку -->
+      <div class="absolute top-48 left-1/2 transform -translate-x-1/2 w-11/12 md:w-1/2">
+        <form action="/search" method="get" class="bg-white p-4 rounded-lg shadow-lg">
+          <div class="flex">
+            <input
+              type="text"
+              class="flex-grow px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-pantone-7536c"
+              placeholder="Пошук по назві процедури"
+              name="query"
+            />
+            <input type="hidden" name="city" id="cityInput" />
+            <button type="submit" class="bg-pantone-7536c text-pantone-432c px-6 py-2 rounded-r-lg hover:bg-pantone-7536c/80">Пошук</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Блоки процедур -->
+    <div class="container mx-auto mt-24 px-4">
+      <div class="flex flex-wrap -mx-4">
+        <!-- Стрижка -->
+        <div class="w-full md:w-1/3 px-4 mb-8">
+          <div class="text-center">
+            <i class="fas fa-cut fa-3x mb-2 text-pantone-432c"></i>
+            <h5 class="text-lg">Стрижка</h5>
+          </div>
+        </div>
+        <!-- Манікюр -->
+        <div class="w-full md:w-1/3 px-4 mb-8">
+          <div class="text-center">
+            <i class="fas fa-hand-sparkles fa-3x mb-2 text-pantone-432c"></i>
+            <h5 class="text-lg">Манікюр</h5>
+          </div>
+        </div>
+        <!-- Косметологія -->
+        <div class="w-full md:w-1/3 px-4 mb-8">
+          <div class="text-center">
+            <i class="fas fa-spa fa-3x mb-2 text-pantone-432c"></i>
+            <h5 class="text-lg">Косметологія</h5>
+          </div>
+        </div>
+      </div>
+
+      <!-- Текст під блоками -->
+      <div class="text-center mb-8">
+        <h5 class="text-pantone-432c">або виберіть необхідного майстра</h5>
+      </div>
+
+      <!-- Блоки майстрів -->
+      <div class="flex flex-wrap -mx-4">
+        <!-- Перукар -->
+        <div class="w-full sm:w-1/2 md:w-1/4 px-4 mb-8">
+          <div class="text-center">
+            <i class="fas fa-user-scissors fa-3x mb-2 text-pantone-432c"></i>
+            <h6 class="text-md">Перукар</h6>
+          </div>
+        </div>
+        <!-- Майстер манікюру -->
+        <div class="w-full sm:w-1/2 md:w-1/4 px-4 mb-8">
+          <div class="text-center">
+            <i class="fas fa-paint-brush fa-3x mb-2 text-pantone-432c"></i>
+            <h6 class="text-md">Майстер манікюру</h6>
+          </div>
+        </div>
+        <!-- Косметолог -->
+        <div class="w-full sm:w-1/2 md:w-1/4 px-4 mb-8">
+          <div class="text-center">
+            <i class="fas fa-user-md fa-3x mb-2 text-pantone-432c"></i>
+            <h6 class="text-md">Косметолог</h6>
+          </div>
+        </div>
+        <!-- Массажист -->
+        <div class="w-full sm:w-1/2 md:w-1/4 px-4 mb-8">
+          <div class="text-center">
+            <i class="fas fa-hands fa-3x mb-2 text-pantone-432c"></i>
+            <h6 class="text-md">Массажист</h6>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Форма заявки -->
+    <div class="container mx-auto my-16 px-4" id="apply">
+      <h2 class="text-center text-2xl mb-8 text-pantone-432c">Заповніть заявку</h2>
+      <form action="/booking" method="post" class="needs-validation bg-white p-6 rounded-lg shadow-lg" novalidate>
+        <div class="flex flex-wrap -mx-4">
+          <div class="w-full md:w-1/2 px-4 mb-4">
+            <label for="name" class="block mb-2 text-pantone-432c">Ім'я</label>
+            <input
+              type="text"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pantone-7536c"
+              id="name"
+              name="name"
+              required
+            />
+            <div class="invalid-feedback">Будь ласка, введіть ваше ім'я.</div>
+          </div>
+          <div class="w-full md:w-1/2 px-4 mb-4">
+            <label for="phone" class="block mb-2 text-pantone-432c">Телефон</label>
+            <input
+              type="tel"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pantone-7536c"
+              id="phone"
+              name="phone"
+              required
+            />
+            <div class="invalid-feedback">Будь ласка, введіть ваш телефон.</div>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label for="service" class="block mb-2 text-pantone-432c">Послуга</label>
+          <select class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pantone-7536c" id="service" name="service" required>
+            <option value="">Виберіть послугу</option>
+            <option value="haircut">Стрижка</option>
+            <option value="manicure">Манікюр</option>
+            <option value="cosmetology">Косметологія</option>
+            <!-- Додайте інші послуги -->
+          </select>
+          <div class="invalid-feedback">Будь ласка, виберіть послугу.</div>
+        </div>
+        <button type="submit" class="w-full bg-pantone-7536c text-pantone-432c px-6 py-3 rounded-lg hover:bg-pantone-7536c/80">Заповнити заявку</button>
+      </form>
+    </div>
+
+    <!-- Подвал -->
+    <footer class="bg-pantone-432c text-pantone-7536c text-center p-4">
+      <div class="container mx-auto">
+        <p>© 2023 raf</p>
+        <p>
+          <a href="tel:+1234567890" class="hover:text-white"><i class="fas fa-phone-alt"></i> +1 (234) 567-890</a>
+          |
+          <a href="mailto:info@raf.com" class="hover:text-white"><i class="fas fa-envelope"></i> info@raf.com</a>
+        </p>
+        <!-- Іконки соціальних мереж видалено -->
+      </div>
+    </footer>
+
+    <!-- Скрипти -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz5iS5SZtmsiE3Aa6zAlJO4c1E8HY+PdffFO9TGzlvGNpvkzgCqXnyv3ro" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" integrity="sha384-+qdLa0ZxYqU0FmLM0vIy+ePO6ggk9IjAdf1EAsIQ5SrG6SwnONg4T0E5TmjW3G5n" crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', path='js/scripts.js') }}"></script>
+</body>
+</html>
