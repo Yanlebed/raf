@@ -42,6 +42,7 @@ class User(Base):
     avatar = Column(String)  # Путь или URL к изображению
     city = Column(String)
     address = Column(String)
+    avatar_url = Column(String, nullable=True)
 
     # Поля для разных типов пользователей
     name = Column(String)  # ФИО или название салона

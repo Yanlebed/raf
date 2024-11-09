@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta
 from random import randint
-from sqlalchemy.orm import Session
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from twilio.rest import Client
 
 from app.core.config import settings
 from app.models.phone_verification import PhoneVerification
 
 
-def send_sms_code(db: Session, phone_number: str):
+async def send_sms_code(db: AsyncSession, phone_number: str):
     code = str(randint(100000, 999999))
     expires_at = datetime.utcnow() + timedelta(minutes=settings.SMS_CODE_EXPIRE_MINUTES)
 
@@ -17,8 +19,8 @@ def send_sms_code(db: Session, phone_number: str):
         verification_code=code,
         expires_at=expires_at
     )
-    db.merge(verification)  # Используем merge для обновления или вставки
-    db.commit()
+    await db.merge(verification)  # Используем merge для обновления или вставки
+    await db.commit()
 
     # Отправляем SMS через Twilio
     client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
@@ -30,14 +32,12 @@ def send_sms_code(db: Session, phone_number: str):
     return message.sid
 
 
-def verify_sms_code(db: Session, phone_number: str, code: str) -> bool:
-    verification = db.query(PhoneVerification).filter(
-        PhoneVerification.phone_number == phone_number,
-        PhoneVerification.verification_code == code,
-        PhoneVerification.expires_at > datetime.utcnow()
-    ).first()
+async def verify_sms_code(db: AsyncSession, phone_number: str, code: str) -> bool:
+    verification = db.execute(select(PhoneVerification).where(PhoneVerification.phone_number == phone_number,
+                                                              PhoneVerification.verification_code == code,
+                                                              PhoneVerification.expires_at > datetime.utcnow()))
     if verification:
-        db.delete(verification)
-        db.commit()
+        await db.delete(verification)
+        await db.commit()
         return True
     return False

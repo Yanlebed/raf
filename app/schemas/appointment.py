@@ -1,5 +1,3 @@
-# app/schemas/appointment.py
-
 from typing import Optional
 from datetime import datetime
 from enum import Enum

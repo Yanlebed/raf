@@ -5,7 +5,7 @@ from jose import jwt
 from app.core.config import settings
 
 
-def generate_email_confirmation_token(email: str) -> str:
+async def generate_email_confirmation_token(email: str) -> str:
     delta = timedelta(hours=settings.EMAIL_RESET_TOKEN_EXPIRE_HOURS)
     now = datetime.utcnow()
     expires = now + delta
@@ -14,7 +14,7 @@ def generate_email_confirmation_token(email: str) -> str:
     return encoded_jwt
 
 
-def verify_email_confirmation_token(token: str) -> Optional[str]:
+async def verify_email_confirmation_token(token: str) -> Optional[str]:
     try:
         decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return decoded_token.get("sub")

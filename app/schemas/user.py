@@ -28,6 +28,7 @@ class UserBase(BaseModel):
     address: Optional[str] = None
     short_description: Optional[str] = None
     status: Optional[UserStatus] = UserStatus.UNCONFIRMED
+    avatar_url: Optional[str] = None
 
 
 class UserCreate(UserBase):
