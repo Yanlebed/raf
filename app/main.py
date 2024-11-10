@@ -1,14 +1,19 @@
 from pathlib import Path
-
+from starlette.responses import FileResponse
 from fastapi import FastAPI, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.api_v1.api import api_router
+from app.api.v1.api import api_router
 from app.core.config import settings
 
+origins = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    # Добавьте другие адреса, если необходимо
+]
 app = FastAPI(
     title=settings.PROJECT_NAME,
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
@@ -23,15 +28,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Подключение статических файлов и шаблонов
-
+# Подключение шаблонов и статики
 BASE_DIR = Path(__file__).resolve().parent
-
 templates = Jinja2Templates(directory=BASE_DIR / 'templates')
-app.mount("/static", StaticFiles(directory=BASE_DIR / 'static'), name="static")
 
 # Подключение API маршрутов
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+app.mount("/static", StaticFiles(directory=BASE_DIR / 'static'), name="static")
+app.mount("/app", StaticFiles(directory="frontend/build", html=True), name="frontend")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -67,3 +72,8 @@ async def master(request: Request, name: str):
 async def apply(request: Request):
     # Форма для заполнения заявки
     return templates.TemplateResponse("apply.html", {"request": request})
+
+
+@app.exception_handler(404)
+async def custom_404_handler(request: Request, exc):
+    return FileResponse('frontend/build/index.html')

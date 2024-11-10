@@ -1,0 +1,31 @@
+/* src/components/ServiceList.scss */
+
+.service-list {
+  h2 {
+    color: #283593;
+    margin-bottom: 1em;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    margin-bottom: 1em;
+    padding: 1em;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+
+    h3 {
+      margin: 0;
+      color: #303f9f;
+    }
+
+    p {
+      margin: 0.5em 0;
+      color: #555;
+    }
+  }
+}
