@@ -62,7 +62,7 @@ async def delete_user(db: AsyncSession, user_id: int):
     return db_user
 
 
-async def authenticate(db: AsyncSession, phone: str, password: str) -> Optional[User]:
+async def authenticate_user(db: AsyncSession, phone: str, password: str) -> Optional[User]:
     user = await get_user_by_phone(db, phone=phone)
     if not user:
         return None
