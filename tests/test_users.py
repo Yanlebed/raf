@@ -1,19 +1,24 @@
-from fastapi.testclient import TestClient
+# raf/tests/test_users.py
+
+import pytest
+from httpx import AsyncClient
 from app.main import app
 
-client = TestClient(app)
-
-
-def test_create_user():
-    response = client.post(
+@pytest.mark.asyncio
+async def test_create_user(async_client: AsyncClient, db):
+    response = await async_client.post(
         "/api/v1/users/",
         json={
             "user_type": "CLIENT",
-            "phone": "1234567890",
-            "password": "testpassword"
+            "phone": "+71234567890",
+            "password": "testpassword",
+            "email": "testuser@example.com",
+            "full_name": "Test User"
         }
     )
-    assert response.status_code == 200
+    assert response.status_code == 200  # Возможно, должно быть 201 Created
     data = response.json()
-    assert data["phone"] == "1234567890"
+    assert data["phone"] == "+71234567890"
+    assert data["email"] == "testuser@example.com"
+    assert data["full_name"] == "Test User"
     assert "id" in data
