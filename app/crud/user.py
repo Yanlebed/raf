@@ -1,3 +1,5 @@
+# app/crud/user.py
+
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +28,7 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
 async def create_new_user(db: AsyncSession, user_in: UserCreate):
     hashed_password = await get_password_hash(user_in.password)
     db_user = User(
-        user_type=user_in.user_type,
+        user_type=user_in.user_type,  # Use the enum instance directly
         phone=user_in.phone,
         email=user_in.email,
         name=user_in.name,
@@ -61,13 +63,23 @@ async def delete_user(db: AsyncSession, user_id: int):
         await db.commit()
     return db_user
 
-
 async def authenticate_user(db: AsyncSession, phone: str, password: str) -> Optional[User]:
-    user = await get_user_by_phone(db, phone=phone)
+    print('Authenticating user')
+    print('Phone: ', phone)
+    print('Password: ', password)
+    result = await db.execute(select(User).where(User.phone == phone))
+    user = result.scalars().first()
     if not user:
+        print("Authentication Failed: User not found")
         return None
+    else:
+        print(f"Authentication: User found - {user.phone}")
+
     if not verify_password(password, user.hashed_password):
+        print("Authentication Failed: Incorrect password")
         return None
+
+    print("Authentication Successful")
     return user
 
 
