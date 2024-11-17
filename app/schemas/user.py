@@ -1,20 +1,9 @@
+# app/schemas/user.py
+
 from typing import Optional
 from enum import Enum
-from pydantic import BaseModel, EmailStr, validator
-
-
-class UserType(str, Enum):
-    MASTER = "Мастер"
-    CLIENT = "Клиент"
-    SALON = "Салон"
-    ADMIN = "Админ-персонал"
-
-
-class UserStatus(str, Enum):
-    ACTIVE = "Активный"
-    DELETED = "Удален"
-    UNCONFIRMED = "Не подтвержден"
-    BLOCKED = "Заблокирован"
+from pydantic import BaseModel, EmailStr, root_validator
+from app.core.enums import UserType, UserStatus
 
 
 class UserBase(BaseModel):
@@ -30,21 +19,32 @@ class UserBase(BaseModel):
     status: Optional[UserStatus] = UserStatus.UNCONFIRMED
     avatar_url: Optional[str] = None
 
+    class Config:
+        orm_mode = True
+        use_enum_values = True
 
-class UserCreate(UserBase):
+
+class UserCreate(BaseModel):
+    user_type: UserType
+    phone: str
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    name: Optional[str] = None
     password: str
+    city: Optional[str] = None
+    is_phone_verified: bool = False
+    address: Optional[str] = None
+    short_description: Optional[str] = None
+    status: Optional[UserStatus] = UserStatus.UNCONFIRMED
+    avatar: Optional[str] = None
 
-    @validator('name')
-    def validate_name(cls, v, values):
-        if values['user_type'] in [UserType.MASTER, UserType.SALON] and not v:
-            raise ValueError('Имя обязательно для Мастера и Салона')
-        return v
-
-    @validator('email')
-    def validate_email(cls, v, values):
-        if values['user_type'] != UserType.CLIENT and not v:
-            raise ValueError('Email обязателен для Мастера, Салона и Админа')
-        return v
+    @root_validator
+    def validate_email(cls, values):
+        user_type = values.get('user_type')
+        email = values.get('email')
+        if user_type != UserType.CLIENT and not email:
+            raise ValueError("Email is required for this user type.")
+        return values
 
 
 class UserUpdate(BaseModel):
@@ -62,6 +62,7 @@ class UserInDBBase(UserBase):
 
     class Config:
         orm_mode = True
+        use_enum_values = True
 
 
 class User(UserInDBBase):

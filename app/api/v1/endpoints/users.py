@@ -1,3 +1,5 @@
+# api/v1/endpoints/users.py
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -7,14 +9,14 @@ from app.schemas.user import User, UserCreate, UserStatus
 from app.core.config import settings
 from app.utils.sms import send_sms_code
 
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, status
 from app.utils.email import send_email
 from app.utils.security import generate_email_confirmation_token, verify_email_confirmation_token
 
 router = APIRouter()
 
 
-@router.post("/", response_model=User)
+@router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
 async def create_user(
         *,
         db: AsyncSession = Depends(deps.get_db),

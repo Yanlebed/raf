@@ -10,7 +10,7 @@ from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
 class UserCredentials(Base):
@@ -20,7 +20,7 @@ class UserCredentials(Base):
     password_hash = Column(String, nullable=False)
 
     # Отношения
-    user = relationship('User', backref='credentials')
+    user = relationship('User', back_populates='credentials')
 
     def set_password(self, password):
         self.password_hash = pwd_context.hash(password)

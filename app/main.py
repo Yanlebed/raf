@@ -11,8 +11,7 @@ from app.core.config import settings
 
 origins = [
     "http://localhost:3000",
-    "http://localhost:8000",
-    # Добавьте другие адреса, если необходимо
+    "http://127.0.0.1:3000",
 ]
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -37,11 +36,6 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / 'static'), name="static")
 app.mount("/app", StaticFiles(directory="frontend/build", html=True), name="frontend")
-
-
-@app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @app.get("/search", response_class=HTMLResponse)

@@ -6,7 +6,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 
 from app.db.base_class import Base
 
@@ -20,7 +20,7 @@ class Review(Base):
     salon_id = Column(Integer, ForeignKey('users.id'), nullable=True)
     rating = Column(Integer, nullable=False)
     comment = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now(timezone.utc))
 
     # Отношения
     client = relationship('User', foreign_keys=[client_id], back_populates='reviews')
