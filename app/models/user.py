@@ -7,13 +7,15 @@ from sqlalchemy import (
     Enum,
     Boolean,
     Text,
-    Enum as SqlEnum
+    Enum as SqlEnum,
+    ForeignKey
 )
 
 from sqlalchemy.orm import relationship
 import enum
 
 from app.db.base_class import Base
+from app.models.location import Location
 from app.models.associations import user_services
 from app.core.enums import UserType, UserStatus
 
@@ -36,6 +38,7 @@ class User(Base):
     city = Column(String)
     address = Column(String)
     avatar_url = Column(String, nullable=True)
+    location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
 
     # Поля для разных типов пользователей
     name = Column(String)  # ФИО или название салона
@@ -51,6 +54,7 @@ class User(Base):
     received_reviews = relationship('Review', foreign_keys='[Review.master_id]', back_populates='master')
     credentials = relationship('UserCredentials', back_populates='user', uselist=False)
     services = relationship('Service', secondary=user_services, back_populates='users')
+    location = relationship('Location')
 
     # def __init__(self, user_type, phone, **kwargs):
     #     self.user_type = user_type

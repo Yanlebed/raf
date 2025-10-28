@@ -6,6 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from app.models.user import User
+from sqlalchemy import select, and_, or_
+from typing import Sequence, Optional
+
+from app.models.user import User
+from app.core.enums import UserType
+from sqlalchemy.orm import joinedload
+from app.models.location import Location
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash, verify_password
 
@@ -85,4 +92,22 @@ async def authenticate_user(db: AsyncSession, phone: str, password: str) -> Opti
 
 async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(select(User).offset(skip).limit(limit))
+    return result.scalars().all()
+
+
+async def get_professionals_by_city(db: AsyncSession, city: str, skip: int = 0, limit: int = 100, q: Optional[str] = None) -> Sequence[User]:
+    result = await db.execute(
+        select(User)
+        .options(joinedload(User.location))
+        .join(Location, Location.id == User.location_id, isouter=True)
+        .where(
+            and_(
+                User.user_type.in_([UserType.MASTER, UserType.SALON]),
+                Location.city == city,
+                or_(User.name.ilike(f"%{q}%"), User.short_description.ilike(f"%{q}%")) if q else True,
+            )
+        )
+        .offset(skip)
+        .limit(limit)
+    )
     return result.scalars().all()

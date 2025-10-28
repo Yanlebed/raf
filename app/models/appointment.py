@@ -53,6 +53,7 @@ class Appointment(Base):
     reminders = Column(Boolean, default=True)
     quantity = Column(Integer, default=1)
     price = Column(Float)
+    duration_override = Column(Integer, nullable=True)  # minutes
 
     # Отношения
     master = relationship('User', foreign_keys=[master_id], back_populates='appointments')

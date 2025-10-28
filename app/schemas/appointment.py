@@ -38,6 +38,7 @@ class AppointmentBase(BaseModel):
     reminders: Optional[bool] = True
     quantity: Optional[int] = 1
     price: Optional[float] = None
+    duration_override: Optional[int] = None
 
 
 class AppointmentCreate(AppointmentBase):
