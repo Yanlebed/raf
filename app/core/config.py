@@ -60,6 +60,16 @@ class Settings(BaseSettings):
     # Slots / Holds
     SLOT_HOLD_MINUTES: int = int(os.getenv("SLOT_HOLD_MINUTES", 10))
 
+    # Media constraints
+    MAX_IMAGE_SIZE_MB: int = int(os.getenv("MAX_IMAGE_SIZE_MB", 5))
+    MAX_VIDEO_SIZE_MB: int = int(os.getenv("MAX_VIDEO_SIZE_MB", 50))
+    ALLOWED_IMAGE_TYPES: List[str] = [
+        "image/jpeg", "image/png", "image/webp", "image/gif"
+    ]
+    ALLOWED_VIDEO_TYPES: List[str] = [
+        "video/mp4", "video/quicktime", "video/webm"
+    ]
+
     class Config:
         case_sensitive = True
 
