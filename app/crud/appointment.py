@@ -1,6 +1,8 @@
 from typing import Optional, Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
+from datetime import datetime, timedelta
 
 from app.models.appointment import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
@@ -25,6 +27,23 @@ async def get_appointments_by_client(db: AsyncSession, client_id: int, skip: int
 async def get_appointments_by_master(db: AsyncSession, master_id: int, skip: int = 0, limit: int = 100) -> Sequence[
     Appointment]:
     result = await db.execute(select(Appointment).where(Appointment.master_id == master_id).offset(skip).limit(limit))
+    return result.scalars().all()
+
+
+async def get_appointments_for_master_on_date(
+    db: AsyncSession, master_id: int, day: datetime
+) -> Sequence[Appointment]:
+    day_start = datetime(day.year, day.month, day.day)
+    day_end = day_start + timedelta(days=1)
+    result = await db.execute(
+        select(Appointment)
+        .options(joinedload(Appointment.service))
+        .where(
+            Appointment.master_id == master_id,
+            Appointment.appointment_date >= day_start,
+            Appointment.appointment_date < day_end,
+        )
+    )
     return result.scalars().all()
 
 

@@ -2,7 +2,11 @@
 
 import os
 from pydantic import BaseSettings
-from typing import Optional
+from typing import Optional, List
+from dotenv import load_dotenv
+
+# Load environment variables from a .env file if present
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -12,7 +16,7 @@ class Settings(BaseSettings):
     # Синхронный URL базы данных для Alembic
     SQLALCHEMY_SYNC_DATABASE_URI: str = "postgresql+psycopg2://admin:admin@localhost/raf_test"
 
-    TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://lyk:lyk_pass@localhost/test_db")
+    TEST_DATABASE_URL: str = os.getenv("TEST_DATABASE_URL", "sqlite+aiosqlite:///./test.db")
 
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key")
     ALGORITHM: str = "HS256"
@@ -46,6 +50,15 @@ class Settings(BaseSettings):
     AWS_STORAGE_BUCKET_NAME: str = os.getenv("AWS_STORAGE_BUCKET_NAME")
     AWS_REGION_NAME: str = os.getenv("AWS_REGION_NAME", "us-east-1")
     AWS_S3_ENDPOINT_URL: Optional[str] = os.getenv("AWS_S3_ENDPOINT_URL")  # Для совместимых сервисов
+
+    # CORS
+    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
+    CORS_ALLOW_CREDENTIALS: bool = True
+    CORS_ALLOW_METHODS: List[str] = ["*"]
+    CORS_ALLOW_HEADERS: List[str] = ["*"]
+
+    # Slots / Holds
+    SLOT_HOLD_MINUTES: int = int(os.getenv("SLOT_HOLD_MINUTES", 10))
 
     class Config:
         case_sensitive = True

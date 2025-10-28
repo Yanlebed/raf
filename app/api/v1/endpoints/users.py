@@ -16,6 +16,13 @@ from app.utils.security import generate_email_confirmation_token, verify_email_c
 router = APIRouter()
 
 
+@router.get("/me", response_model=User)
+async def read_user_me(
+        current_user: "User" = Depends(deps.get_current_active_user),
+):
+    return current_user
+
+
 @router.post("/", response_model=User, status_code=status.HTTP_201_CREATED)
 async def create_user(
         *,

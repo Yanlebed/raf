@@ -11,3 +11,9 @@ class UserStatus(str, Enum):
     DELETED = "Удален"
     UNCONFIRMED = "Не подтвержден"
     BLOCKED = "Заблокирован"
+
+
+class OrganizationRole(str, Enum):
+    OWNER = "OWNER"
+    MANAGER = "MANAGER"
+    MASTER = "MASTER"

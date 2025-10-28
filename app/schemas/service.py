@@ -16,10 +16,19 @@ class ServiceBase(BaseModel):
     price: Optional[float] = None
     category: Optional[ServiceCategory] = None
     is_active: Optional[bool] = True
+    owner_user_id: Optional[int] = None
+    owner_org_id: Optional[int] = None
 
 
-class ServiceCreate(ServiceBase):
-    pass
+class ServiceCreate(BaseModel):
+    name: str
+    description: Optional[str] = None
+    duration: int  # В минутах (обязательно)
+    price: Optional[float] = None
+    category: Optional[ServiceCategory] = None
+    is_active: Optional[bool] = True
+    owner_user_id: Optional[int] = None
+    owner_org_id: Optional[int] = None
 
 
 class ServiceUpdate(ServiceBase):
