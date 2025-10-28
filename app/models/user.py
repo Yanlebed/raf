@@ -39,6 +39,13 @@ class User(Base):
     address = Column(String)
     avatar_url = Column(String, nullable=True)
     location_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
+    # Social links
+    facebook_url = Column(String, nullable=True)
+    instagram_url = Column(String, nullable=True)
+    tiktok_url = Column(String, nullable=True)
+    telegram_url = Column(String, nullable=True)
+    whatsapp = Column(String, nullable=True)
+    viber = Column(String, nullable=True)
 
     # Поля для разных типов пользователей
     name = Column(String)  # ФИО или название салона

@@ -11,6 +11,7 @@ from app.models.user_organization import UserOrganization
 from app.core.enums import OrganizationRole
 from sqlalchemy.future import select
 from app.models.review import Review as ReviewModel
+from app.models.appointment import Appointment, ConfirmationStatus
 
 router = APIRouter()
 
@@ -68,6 +69,17 @@ async def create_review(
     if current_user.user_type != UserType.CLIENT:
         raise HTTPException(status_code=400, detail="Только клиенты могут оставлять отзывы.")
     review_in.client_id = current_user.id
+    # Mark verified if appointment exists and confirmed/completed
+    result = await db.execute(
+        select(Appointment).where(
+            Appointment.client_id == current_user.id,
+            (Appointment.master_id == review_in.master_id) | (Appointment.client_id == review_in.salon_id),
+            Appointment.confirmation_status.in_([ConfirmationStatus.CONFIRMED, ConfirmationStatus.COMPLETED])
+        )
+    )
+    appt = result.scalars().first()
+    if appt:
+        review_in.verified = True
     review = await create_new_review(db=db, review_in=review_in)
     return review
 

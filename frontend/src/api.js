@@ -173,3 +173,83 @@ export const deleteAppointment = async (id) => {
         throw error;
     }
 };
+
+// Calendar / Slots
+export const getMasterSlots = async (masterId, dateIso, serviceId) => {
+    try {
+        const params = { date: dateIso };
+        if (serviceId) params.service_id = serviceId;
+        const response = await api.get(`/calendar/masters/${masterId}/slots`, { params });
+        return response.data; // array of ISO strings
+    } catch (error) {
+        console.error('Ошибка при получении слотов мастера:', error);
+        throw error;
+    }
+};
+
+// Holds
+export const placeHold = async ({ masterId, serviceId, startTime, durationMinutes }) => {
+    try {
+        const response = await api.post('/holds/', {
+            master_id: masterId,
+            service_id: serviceId,
+            start_time: startTime,
+            duration_minutes: durationMinutes,
+        });
+        return response.data; // { id, expires_at }
+    } catch (error) {
+        console.error('Ошибка при удержании слота:', error);
+        throw error;
+    }
+};
+
+export const releaseHold = async (holdId) => {
+    try {
+        const response = await api.delete(`/holds/${holdId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Ошибка при снятии удержания слота:', error);
+        throw error;
+    }
+};
+
+// Files
+export const presignUpload = async ({ filename, contentType, orgId }) => {
+    try {
+        const params = { filename, content_type: contentType };
+        if (orgId) params.org_id = orgId;
+        const response = await api.post('/files/presign', null, { params });
+        return response.data; // { upload_url, key }
+    } catch (error) {
+        console.error('Ошибка при получении presigned URL:', error);
+        throw error;
+    }
+};
+
+export const uploadViaPresignedUrl = async (uploadUrl, file) => {
+    try {
+        const res = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': file.type,
+            },
+            body: file,
+        });
+        if (!res.ok) throw new Error('Ошибка загрузки файла');
+        return true;
+    } catch (error) {
+        console.error('Ошибка загрузки файла:', error);
+        throw error;
+    }
+};
+
+// Recommendations
+export const getRecommendedDurations = async () => {
+    try {
+        const response = await api.get('/recommendations/durations');
+        return response.data; // { category: minutes }
+    } catch (error) {
+        console.error('Ошибка при получении рекомендаций по длительности:', error);
+        throw error;
+    }
+};

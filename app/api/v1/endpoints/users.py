@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.crud.user import get_some_user, get_user_by_phone, create_new_user, get_users, get_user_by_email, update_some_user
 from app.api import deps
-from app.schemas.user import User, UserCreate, UserStatus
+from app.schemas.user import User, UserCreate, UserStatus, UserUpdate
 from app.core.config import settings
 from app.utils.sms import send_sms_code
 
@@ -20,6 +20,39 @@ router = APIRouter()
 async def read_user_me(
         current_user: "User" = Depends(deps.get_current_active_user),
 ):
+    return current_user
+
+
+@router.delete("/me", status_code=204)
+async def delete_me(db: AsyncSession = Depends(deps.get_db), current_user: User = Depends(deps.get_current_active_user)):
+    await db.delete(current_user)
+    await db.commit()
+    return
+
+
+@router.post("/me/deactivate")
+async def deactivate_me(db: AsyncSession = Depends(deps.get_db), current_user: User = Depends(deps.get_current_active_user)):
+    current_user.is_active = False
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    return {"status": "deactivated"}
+
+
+@router.put("/me", response_model=User)
+async def update_me(
+        *,
+        db: AsyncSession = Depends(deps.get_db),
+        current_user: User = Depends(deps.get_current_active_user),
+        user_in: UserUpdate,
+):
+    # Allow updating profile fields including social links
+    update_data = user_in.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(current_user, field, value)
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
     return current_user
 
 

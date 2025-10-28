@@ -9,6 +9,8 @@ class ReviewBase(BaseModel):
     salon_id: Optional[int] = None
     rating: int
     comment: Optional[str] = None
+    anonymous: Optional[bool] = False
+    verified: Optional[bool] = False
 
 
 class ReviewCreate(ReviewBase):

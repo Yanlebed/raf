@@ -18,6 +18,12 @@ class UserBase(BaseModel):
     short_description: Optional[str] = None
     status: Optional[UserStatus] = UserStatus.UNCONFIRMED
     avatar_url: Optional[str] = None
+    facebook_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    tiktok_url: Optional[str] = None
+    telegram_url: Optional[str] = None
+    whatsapp: Optional[str] = None
+    viber: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -55,6 +61,12 @@ class UserUpdate(BaseModel):
     address: Optional[str] = None
     short_description: Optional[str] = None
     status: Optional[UserStatus] = None
+    facebook_url: Optional[str] = None
+    instagram_url: Optional[str] = None
+    tiktok_url: Optional[str] = None
+    telegram_url: Optional[str] = None
+    whatsapp: Optional[str] = None
+    viber: Optional[str] = None
 
 
 class UserInDBBase(UserBase):
