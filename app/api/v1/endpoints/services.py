@@ -39,6 +39,17 @@ async def read_public_services(
     return {"items": items, "skip": skip, "limit": limit, "total": total}
 
 
+@router.get("/public/{service_id}", response_model=schemas.service.Service)
+async def read_public_service_detail(
+    service_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+):
+    service = await crud_get_service(db=db, service_id=service_id)
+    if not service or not service.is_active:
+        raise HTTPException(status_code=404, detail="Услуга не найдена")
+    return service
+
+
 @router.get("/")
 async def read_services(
     skip: int = 0,
