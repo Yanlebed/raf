@@ -10,29 +10,9 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import relationship
-import enum
 
 from app.db.base_class import Base
-
-
-class ConfirmationStatus(enum.Enum):
-    PENDING = "Ожидает подтверждения"
-    CONFIRMED = "Подтверждена"
-    CANCELED_BY_CLIENT = "Отменена клиентом"
-    CANCELED_BY_MASTER = "Отменена мастером"
-    COMPLETED = "Завершена"
-
-
-class PaymentMethod(enum.Enum):
-    CASH = "Наличные"
-    CARD = "Карта"
-    ONLINE = "Онлайн-оплата"
-
-
-class PaymentStatus(enum.Enum):
-    PAID = "Оплачено"
-    NOT_PAID = "Не оплачено"
-    PARTIALLY_PAID = "Частично оплачено"
+from app.core.enums import ConfirmationStatus, PaymentMethod, PaymentStatus
 
 
 class Appointment(Base):

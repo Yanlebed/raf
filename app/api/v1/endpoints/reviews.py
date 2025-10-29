@@ -12,25 +12,34 @@ from app.core.enums import OrganizationRole
 from sqlalchemy.future import select
 from app.models.review import Review as ReviewModel
 from app.models.appointment import Appointment, ConfirmationStatus
+from sqlalchemy import func, desc, asc
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Review])
+@router.get("/")
 async def read_reviews(
         db: AsyncSession = Depends(deps.get_db),
         skip: int = 0,
         limit: int = 100,
         master_id: int = None,
         salon_id: int = None,
+        order: str = "desc",
         current_user: User = Depends(deps.get_current_active_user),
 ):
+    ordering = desc(ReviewModel.created_at) if order == "desc" else asc(ReviewModel.created_at)
     if current_user.user_type == UserType.ADMIN:
         if master_id:
-            return await get_reviews_by_master(db, master_id=master_id, skip=skip, limit=limit)
+            total = (await db.execute(select(func.count(ReviewModel.id)).where(ReviewModel.master_id == master_id))).scalar_one()
+            result = await db.execute(select(ReviewModel).where(ReviewModel.master_id == master_id).order_by(ordering).offset(skip).limit(limit))
+            return {"items": result.scalars().all(), "skip": skip, "limit": limit, "total": total}
         if salon_id:
-            return await get_reviews_by_salon(db, salon_id=salon_id, skip=skip, limit=limit)
-        return await get_reviews(db, skip=skip, limit=limit)
+            total = (await db.execute(select(func.count(ReviewModel.id)).where(ReviewModel.salon_id == salon_id))).scalar_one()
+            result = await db.execute(select(ReviewModel).where(ReviewModel.salon_id == salon_id).order_by(ordering).offset(skip).limit(limit))
+            return {"items": result.scalars().all(), "skip": skip, "limit": limit, "total": total}
+        total = (await db.execute(select(func.count(ReviewModel.id)))).scalar_one()
+        result = await db.execute(select(ReviewModel).order_by(ordering).offset(skip).limit(limit))
+        return {"items": result.scalars().all(), "skip": skip, "limit": limit, "total": total}
 
     # For org OWNER/MANAGER with no explicit filter, scope to their org masters/salon
     if not master_id and not salon_id:
@@ -44,19 +53,26 @@ async def read_reviews(
             master_ids = (await db.execute(
                 select(UserOrganization.user_id).where(UserOrganization.organization_id.in_(org_ids))
             )).scalars().all()
+            total = (await db.execute(
+                select(func.count(ReviewModel.id)).where((ReviewModel.master_id.in_(master_ids)) | (ReviewModel.salon_id.in_(master_ids)))
+            )).scalar_one()
             result = await db.execute(
                 select(ReviewModel).where(
                     (ReviewModel.master_id.in_(master_ids)) | (ReviewModel.salon_id.in_(master_ids))
-                ).offset(skip).limit(limit)
+                ).order_by(ordering).offset(skip).limit(limit)
             )
-            return result.scalars().all()
-        return []
+            return {"items": result.scalars().all(), "skip": skip, "limit": limit, "total": total}
+        return {"items": [], "skip": skip, "limit": limit, "total": 0}
 
     if master_id:
-        return await get_reviews_by_master(db, master_id=master_id, skip=skip, limit=limit)
+        total = (await db.execute(select(func.count(ReviewModel.id)).where(ReviewModel.master_id == master_id))).scalar_one()
+        result = await db.execute(select(ReviewModel).where(ReviewModel.master_id == master_id).order_by(ordering).offset(skip).limit(limit))
+        return {"items": result.scalars().all(), "skip": skip, "limit": limit, "total": total}
     if salon_id:
-        return await get_reviews_by_salon(db, salon_id=salon_id, skip=skip, limit=limit)
-    return []
+        total = (await db.execute(select(func.count(ReviewModel.id)).where(ReviewModel.salon_id == salon_id))).scalar_one()
+        result = await db.execute(select(ReviewModel).where(ReviewModel.salon_id == salon_id).order_by(ordering).offset(skip).limit(limit))
+        return {"items": result.scalars().all(), "skip": skip, "limit": limit, "total": total}
+    return {"items": [], "skip": skip, "limit": limit, "total": 0}
 
 
 @router.post("/", response_model=Review)

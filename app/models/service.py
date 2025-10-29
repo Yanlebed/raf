@@ -9,18 +9,12 @@ from sqlalchemy import (
     ForeignKey,
 )
 from sqlalchemy.orm import relationship
-import enum
 
 from app.db.base_class import Base
 from app.models.associations import user_services
 from app.models.organization import Organization
 from app.models.user import User
-
-
-class ServiceCategory(enum.Enum):
-    HAIRCUT = "Стрижка"
-    MANICURE = "Маникюр"
-    # Добавьте другие категории по необходимости
+from app.core.enums import ServiceCategory
 
 
 class Service(Base):

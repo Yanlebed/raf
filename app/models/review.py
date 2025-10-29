@@ -5,6 +5,7 @@ from sqlalchemy import (
     DateTime,
     Text,
 )
+from sqlalchemy import Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
@@ -21,8 +22,8 @@ class Review(Base):
     rating = Column(Integer, nullable=False)
     comment = Column(Text)
     created_at = Column(DateTime, default=datetime.now(timezone.utc))
-    anonymous = Column(Integer, default=0)  # 0/1 bool
-    verified = Column(Integer, default=0)  # 0/1 bool
+    anonymous = Column(Boolean, default=False)
+    verified = Column(Boolean, default=False)
 
     # Отношения
     client = relationship('User', foreign_keys=[client_id], back_populates='reviews')

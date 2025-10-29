@@ -59,7 +59,6 @@ class User(Base):
     client_appointments = relationship('Appointment', foreign_keys='[Appointment.client_id]', back_populates='client')
     reviews = relationship('Review', foreign_keys='[Review.client_id]', back_populates='client')
     received_reviews = relationship('Review', foreign_keys='[Review.master_id]', back_populates='master')
-    credentials = relationship('UserCredentials', back_populates='user', uselist=False)
     services = relationship('Service', secondary=user_services, back_populates='users')
     location = relationship('Location')
 

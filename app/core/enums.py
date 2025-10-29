@@ -17,3 +17,28 @@ class OrganizationRole(str, Enum):
     OWNER = "OWNER"
     MANAGER = "MANAGER"
     MASTER = "MASTER"
+
+
+class ServiceCategory(str, Enum):
+    HAIRCUT = "Стрижка"
+    MANICURE = "Маникюр"
+
+
+class ConfirmationStatus(str, Enum):
+    PENDING = "Ожидает подтверждения"
+    CONFIRMED = "Подтверждена"
+    CANCELED_BY_CLIENT = "Отменена клиентом"
+    CANCELED_BY_MASTER = "Отменена мастером"
+    COMPLETED = "Завершена"
+
+
+class PaymentMethod(str, Enum):
+    CASH = "Наличные"
+    CARD = "Карта"
+    ONLINE = "Онлайн-оплата"
+
+
+class PaymentStatus(str, Enum):
+    PAID = "Оплачено"
+    NOT_PAID = "Не оплачено"
+    PARTIALLY_PAID = "Частично оплачено"

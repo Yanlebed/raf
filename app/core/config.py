@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", 60 * 24 * 7))
 
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", 587))
@@ -69,6 +70,20 @@ class Settings(BaseSettings):
     ALLOWED_VIDEO_TYPES: List[str] = [
         "video/mp4", "video/quicktime", "video/webm"
     ]
+
+    # OTP / Rate limiting
+    OTP_MAX_SENDS_PER_HOUR: int = int(os.getenv("OTP_MAX_SENDS_PER_HOUR", 5))
+    OTP_MAX_FAILED_VERIFICATIONS_PER_HOUR: int = int(os.getenv("OTP_MAX_FAILED_VERIFICATIONS_PER_HOUR", 5))
+    OTP_LOCK_MINUTES: int = int(os.getenv("OTP_LOCK_MINUTES", 15))
+
+    # Redis / Throttling
+    REDIS_URL: Optional[str] = os.getenv("REDIS_URL")
+    OTP_MAX_SENDS_PER_HOUR_IP: int = int(os.getenv("OTP_MAX_SENDS_PER_HOUR_IP", 20))
+    OTP_MAX_FAILED_PER_HOUR_IP: int = int(os.getenv("OTP_MAX_FAILED_PER_HOUR_IP", 20))
+
+    # Cookies
+    USE_COOKIE_TOKENS: bool = bool(int(os.getenv("USE_COOKIE_TOKENS", "0")))
+    COOKIE_SECURE: bool = bool(int(os.getenv("COOKIE_SECURE", "0")))
 
     class Config:
         case_sensitive = True

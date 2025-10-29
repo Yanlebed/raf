@@ -1,12 +1,8 @@
 from typing import Optional
-from enum import Enum
 from pydantic import BaseModel
+from app.core.enums import ServiceCategory
 
 
-class ServiceCategory(str, Enum):
-    HAIRCUT = "Стрижка"
-    MANICURE = "Маникюр"
-    # Добавьте другие категории по необходимости
 
 
 class ServiceBase(BaseModel):
@@ -40,6 +36,7 @@ class ServiceInDBBase(ServiceBase):
 
     class Config:
         orm_mode = True
+        use_enum_values = True
 
 
 class Service(ServiceInDBBase):
