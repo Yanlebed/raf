@@ -16,10 +16,11 @@ app = FastAPI(
 )
 
 # Настройка CORS
+allow_credentials = settings.CORS_ALLOW_CREDENTIALS and ("*" not in origins)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=settings.CORS_ALLOW_CREDENTIALS,
+    allow_credentials=allow_credentials,
     allow_methods=settings.CORS_ALLOW_METHODS,
     allow_headers=settings.CORS_ALLOW_HEADERS,
 )

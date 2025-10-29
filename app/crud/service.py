@@ -2,7 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional, Sequence, Optional as Opt
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, aliased
+from sqlalchemy import func, distinct
 from app.models.service import Service
 from app.models.user import User
 from app.models.location import Location
@@ -21,33 +22,40 @@ async def get_services(db: AsyncSession, skip: int = 0, limit: int = 100) -> Seq
 
 
 async def get_services_by_city(db: AsyncSession, city: str, skip: int = 0, limit: int = 100, q: Opt[str] = None) -> Sequence[Service]:
-    # Prefer owner linkage if present; fall back to associated users
-    q_owner_user = (
+    # Single-query approach: join to owner_user and owner_org locations via aliases
+    LUser = aliased(Location)
+    LOrg = aliased(Location)
+    stmt = (
         select(Service)
-        .options(joinedload(Service.owner_user))
-        .join(User, User.id == Service.owner_user_id, isouter=True)
-        .join(Location, Location.id == User.location_id, isouter=True)
-        .where(Location.city == city)
-    )
-    q_owner_org = (
-        select(Service)
-        .options(joinedload(Service.owner_org))
-        .join(Organization, Organization.id == Service.owner_org_id, isouter=True)
-        .join(Location, Location.id == Organization.location_id, isouter=True)
-        .where(Location.city == city)
+        .options(joinedload(Service.owner_user), joinedload(Service.owner_org))
+        .outerjoin(User, User.id == Service.owner_user_id)
+        .outerjoin(LUser, LUser.id == User.location_id)
+        .outerjoin(Organization, Organization.id == Service.owner_org_id)
+        .outerjoin(LOrg, LOrg.id == Organization.location_id)
+        .where((LUser.city == city) | (LOrg.city == city))
+        .offset(skip)
+        .limit(limit)
     )
     if q:
-        q_owner_user = q_owner_user.where(
-            (Service.name.ilike(f"%{q}%")) | (Service.description.ilike(f"%{q}%"))
-        )
-        q_owner_org = q_owner_org.where(
-            (Service.name.ilike(f"%{q}%")) | (Service.description.ilike(f"%{q}%"))
-        )
-    # Union results and paginate in Python (simple approach for now)
-    owner_user_services = (await db.execute(q_owner_user)).scalars().all()
-    owner_org_services = (await db.execute(q_owner_org)).scalars().all()
-    combined = owner_user_services + [s for s in owner_org_services if s not in owner_user_services]
-    return combined[skip: skip + limit]
+        stmt = stmt.where((Service.name.ilike(f"%{q}%")) | (Service.description.ilike(f"%{q}%")))
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+async def count_services_by_city(db: AsyncSession, city: str, q: Opt[str] = None) -> int:
+    LUser = aliased(Location)
+    LOrg = aliased(Location)
+    stmt = (
+        select(func.count(distinct(Service.id)))
+        .outerjoin(User, User.id == Service.owner_user_id)
+        .outerjoin(LUser, LUser.id == User.location_id)
+        .outerjoin(Organization, Organization.id == Service.owner_org_id)
+        .outerjoin(LOrg, LOrg.id == Organization.location_id)
+        .where((LUser.city == city) | (LOrg.city == city))
+    )
+    if q:
+        stmt = stmt.where((Service.name.ilike(f"%{q}%")) | (Service.description.ilike(f"%{q}%")))
+    return (await db.execute(stmt)).scalar_one()
 
 
 async def create_service(db: AsyncSession, service_in: ServiceCreate) -> Service:

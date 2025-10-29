@@ -16,26 +16,52 @@ from app.core.enums import OrganizationRole
 from sqlalchemy.future import select
 from app.crud.slot_hold import get_active_holds
 from app.models.appointment import Appointment as AppointmentModel
+from sqlalchemy import func, asc, desc
 
 router = APIRouter()
 
 
-@router.get("/", response_model=List[Appointment])
+@router.get("/")
 async def read_appointments(
         db: AsyncSession = Depends(deps.get_db),
         skip: int = 0,
         limit: conint(gt=0, le=100) = 100,
+        order: str = "asc",
         current_user: User = Depends(deps.get_current_active_user),
 ):
+    ordering = asc(AppointmentModel.appointment_date) if order != "desc" else desc(AppointmentModel.appointment_date)
+    items = []
+    total = 0
     if current_user.user_type == UserType.CLIENT:
-        appointments = await get_appointments_by_client(db, client_id=current_user.id, skip=skip, limit=limit)
+        total = (await db.execute(
+            select(func.count(AppointmentModel.id)).where(AppointmentModel.client_id == current_user.id)
+        )).scalar_one()
+        result = await db.execute(
+            select(AppointmentModel)
+            .where(AppointmentModel.client_id == current_user.id)
+            .order_by(ordering)
+            .offset(skip).limit(limit)
+        )
+        items = result.scalars().all()
     elif current_user.user_type == UserType.MASTER:
-        appointments = await get_appointments_by_master(db, master_id=current_user.id, skip=skip, limit=limit)
+        total = (await db.execute(
+            select(func.count(AppointmentModel.id)).where(AppointmentModel.master_id == current_user.id)
+        )).scalar_one()
+        result = await db.execute(
+            select(AppointmentModel)
+            .where(AppointmentModel.master_id == current_user.id)
+            .order_by(ordering)
+            .offset(skip).limit(limit)
+        )
+        items = result.scalars().all()
     else:
         if current_user.user_type == UserType.ADMIN:
-            appointments = await get_appointments(db, skip=skip, limit=limit)
+            total = (await db.execute(select(func.count(AppointmentModel.id)))).scalar_one()
+            result = await db.execute(
+                select(AppointmentModel).order_by(ordering).offset(skip).limit(limit)
+            )
+            items = result.scalars().all()
         else:
-            # Org OWNER/MANAGER: list appointments for masters in their orgs only
             org_ids = (await db.execute(
                 select(UserOrganization.organization_id).where(
                     UserOrganization.user_id == current_user.id,
@@ -46,13 +72,20 @@ async def read_appointments(
                 master_ids = (await db.execute(
                     select(UserOrganization.user_id).where(UserOrganization.organization_id.in_(org_ids))
                 )).scalars().all()
+                total = (await db.execute(
+                    select(func.count(AppointmentModel.id)).where(AppointmentModel.master_id.in_(master_ids))
+                )).scalar_one()
                 result = await db.execute(
-                    select(AppointmentModel).where(AppointmentModel.master_id.in_(master_ids)).offset(skip).limit(limit)
+                    select(AppointmentModel)
+                    .where(AppointmentModel.master_id.in_(master_ids))
+                    .order_by(ordering)
+                    .offset(skip).limit(limit)
                 )
-                appointments = result.scalars().all()
+                items = result.scalars().all()
             else:
-                appointments = []
-    return appointments
+                items = []
+                total = 0
+    return {"items": items, "skip": skip, "limit": limit, "total": total}
 
 
 @router.post("/", response_model=Appointment)

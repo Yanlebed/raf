@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func
 from typing import List
 
 from app import schemas
@@ -19,12 +20,13 @@ from app.crud.service import (
     update_service as crud_update_service,
     delete_service as crud_delete_service,
     get_services_by_city as crud_get_services_by_city,
+    count_services_by_city as crud_count_services_by_city,
 )
 
 router = APIRouter()
 
 
-@router.get("/public", response_model=List[schemas.service.Service])
+@router.get("/public")
 async def read_public_services(
     skip: int = 0,
     limit: int = 100,
@@ -32,11 +34,12 @@ async def read_public_services(
     q: str | None = None,
     db: AsyncSession = Depends(deps.get_db),
 ):
-    services = await crud_get_services_by_city(db, city=city, skip=skip, limit=limit, q=q)
-    return services
+    items = await crud_get_services_by_city(db, city=city, skip=skip, limit=limit, q=q)
+    total = await crud_count_services_by_city(db, city=city, q=q)
+    return {"items": items, "skip": skip, "limit": limit, "total": total}
 
 
-@router.get("/", response_model=List[schemas.service.Service])
+@router.get("/")
 async def read_services(
     skip: int = 0,
     limit: int = 100,
@@ -44,7 +47,10 @@ async def read_services(
     current_user: User = Depends(deps.get_current_active_user),
 ):
     if current_user.user_type == UserType.ADMIN:
-        return await crud_get_services(db, skip=skip, limit=limit)
+        items = await crud_get_services(db, skip=skip, limit=limit)
+        # Optional: total for admin services listing
+        total = (await db.execute(select(ServiceModel))).scalars().count() if False else None
+        return {"items": items, "skip": skip, "limit": limit, "total": total}
     org_ids = (await db.execute(
         select(UserOrganization.organization_id).where(
             UserOrganization.user_id == current_user.id,
@@ -62,7 +68,15 @@ async def read_services(
                 (ServiceModel.owner_user_id == current_user.id) | (ServiceModel.owner_org_id.in_(org_ids))
             ).offset(skip).limit(limit)
         )
-    return result.scalars().all()
+    items = result.scalars().all()
+    # Simple total: count matching rows
+    total_stmt = select(func.count(ServiceModel.id))
+    if not org_ids:
+        total_stmt = total_stmt.where(ServiceModel.owner_user_id == current_user.id)
+    else:
+        total_stmt = total_stmt.where((ServiceModel.owner_user_id == current_user.id) | (ServiceModel.owner_org_id.in_(org_ids)))
+    total = (await db.execute(total_stmt)).scalar_one()
+    return {"items": items, "skip": skip, "limit": limit, "total": total}
 
 
 @router.post("/", response_model=schemas.service.Service)

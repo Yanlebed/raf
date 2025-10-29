@@ -12,6 +12,7 @@ from typing import Sequence, Optional
 from app.models.user import User
 from app.core.enums import UserType
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 from app.models.location import Location
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash, verify_password
@@ -111,3 +112,18 @@ async def get_professionals_by_city(db: AsyncSession, city: str, skip: int = 0, 
         .limit(limit)
     )
     return result.scalars().all()
+
+
+async def count_professionals_by_city(db: AsyncSession, city: str, q: Optional[str] = None) -> int:
+    stmt = (
+        select(func.count(User.id))
+        .join(Location, Location.id == User.location_id, isouter=True)
+        .where(
+            and_(
+                User.user_type.in_([UserType.MASTER, UserType.SALON]),
+                Location.city == city,
+                or_(User.name.ilike(f"%{q}%"), User.short_description.ilike(f"%{q}%")) if q else True,
+            )
+        )
+    )
+    return (await db.execute(stmt)).scalar_one()
