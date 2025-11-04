@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { fetchBackend } from "../../../../../_lib/proxy";
+import { fetchBackend } from "../../../../../../_lib/proxy";
 
 export async function GET(request, { params }) {
   const { searchParams } = new URL(request.url);

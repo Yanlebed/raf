@@ -614,3 +614,33 @@ async def delete_service_endpoint(
             raise HTTPException(status_code=403, detail="Недостаточно прав для удаления услуги.")
     service = await crud_delete_service(db=db, service_id=service_id)
     return service
+
+
+# Public master slots with optional custom duration
+@router.get("/public/masters/{master_id}/slots")
+async def read_public_master_slots(
+    *,
+    master_id: int,
+    date: str,
+    duration_minutes: int | None = None,
+    db: AsyncSession = Depends(deps.get_db),
+):
+    from datetime import datetime
+    try:
+        day = datetime.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Неверная дата")
+    schedules = (await db.execute(
+        select(MasterSchedule).where(MasterSchedule.master_id == master_id)
+    )).scalars().all()
+    appointments = await get_appointments_for_master_on_date(db, master_id=master_id, day=day)
+    dur = None
+    if duration_minutes is not None:
+        try:
+            dm = int(duration_minutes)
+            if dm > 0:
+                dur = dm
+        except Exception:
+            pass
+    slots = compute_daily_slots(schedules, appointments, day, service_duration_minutes=dur)
+    return [dt.isoformat() for dt in slots]

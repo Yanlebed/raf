@@ -74,4 +74,19 @@ export async function loginWithOtp({ phone, code }) {
   return { ok: true };
 }
 
+export async function updateMe(payload) {
+  const res = await fetch("/api/me", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    const err = new Error(data?.detail || "Failed to update profile");
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}
+
 

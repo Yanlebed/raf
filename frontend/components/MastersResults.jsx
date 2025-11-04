@@ -78,8 +78,8 @@ export default function MastersResults({ items, ownersRatings = {}, ownersLocati
               <button type="button" aria-label="Додати до обраних" onClick={() => toggleFav(entry.masterId)} style={{ width: 32, height: 32, borderRadius: 999, border: "1px solid var(--border)", background: "#fff" }}>{favs[entry.masterId] ? "❤️" : "🤍"}</button>
             </div>
           </div>
-          <div style={{ flex: 1, display: "grid", gap: 6, padding: 10 }}>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>{name}</div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6, padding: 10 }}>
+            <div style={{ fontWeight: 700, fontSize: 14 }}><a href={`/masters/${entry.masterId}`}>{name}</a></div>
             <div className="muted" style={{ fontStyle: "italic", fontSize: 12 }}>{direction}</div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {typeof experience === "number" ? (
@@ -87,13 +87,13 @@ export default function MastersResults({ items, ownersRatings = {}, ownersLocati
               ) : null}
               <div style={{ border: "1px solid var(--border)", borderRadius: 999, padding: "3px 6px", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>⭐ {typeof rating === "number" ? rating.toFixed(1) : "—"}{typeof ratingCount === "number" ? ` (${ratingCount})` : ""}</div>
               {typeof minPrice === "number" ? (
-                <div style={{ border: "1px solid var(--border)", borderRadius: 999, padding: "3px 6px", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>💰 від {minPrice}</div>
+                <div style={{ border: "1px solid var(--border)", borderRadius: 999, padding: "3px 6px", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>💰 від {minPrice} ₴</div>
               ) : null}
               {typeof dist === "number" ? (
                 <div style={{ border: "1px solid var(--border)", borderRadius: 999, padding: "3px 6px", display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>📍 {dist.toFixed(1)} км</div>
               ) : null}
             </div>
-            <div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: "auto" }}>
               {serviceId ? <a className="button" href={`/services/${serviceId}`} style={{ fontSize: 12, padding: "6px 10px" }}>Записатися</a> : null}
             </div>
           </div>

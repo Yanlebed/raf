@@ -25,8 +25,7 @@ export default function Footer() {
         <div style={{ display: "grid", gap: 4 }}>
           <div className="nav-link">067 123 45 67</div>
           <a href="mailto:info@raf.ua" className="nav-link">info@raf.ua</a>
-          <div className="nav-link">Графік роботи служби підтримки</div>
-          <div className="nav-link">08:00 - 21:00</div>
+          <div className="muted">Графік роботи служби підтримки: 08:00–21:00</div>
         </div>
       </div>
     </div>
