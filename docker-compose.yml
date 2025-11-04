@@ -4,13 +4,34 @@ services:
     build: .
     ports:
       - "8000:80"
+    environment:
+      PYTHONPATH: "/app"
+      DATABASE_URL: "postgresql+asyncpg://user:password@db/mydb"
+      SQLALCHEMY_SYNC_DATABASE_URI: "postgresql+psycopg2://user:password@db/mydb"
     volumes:
       - .:/app
     depends_on:
       - db
+  frontend:
+    image: node:20
+    working_dir: /app/frontend
+    command: sh -c "npm ci || npm install && npm run dev"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: "http://web:80/api/v1"
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/frontend/node_modules
+    depends_on:
+      - web
   db:
     image: postgres
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydb
+
+volumes:
+  frontend_node_modules:

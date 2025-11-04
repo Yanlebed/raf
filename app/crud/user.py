@@ -35,14 +35,21 @@ async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
 
 async def create_new_user(db: AsyncSession, user_in: UserCreate):
     hashed_password = await get_password_hash(user_in.password)
+    # Resolve location by city if provided
+    location_id = None
+    if user_in.city:
+        loc_row = (await db.execute(select(Location).where(Location.city == user_in.city))).scalars().first()
+        if loc_row:
+            location_id = loc_row.id
     db_user = User(
-        user_type=user_in.user_type,  # Use the enum instance directly
+        user_type=user_in.user_type,
         phone=user_in.phone,
         email=user_in.email,
         name=user_in.name,
         hashed_password=hashed_password,
         city=user_in.city,
-        address=user_in.address
+        address=user_in.address,
+        location_id=location_id,
     )
     db.add(db_user)
     await db.commit()

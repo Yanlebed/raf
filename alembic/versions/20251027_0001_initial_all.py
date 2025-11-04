@@ -17,12 +17,6 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Enums
-    sa.Enum('MASTER', 'CLIENT', 'SALON', 'ADMIN', name='usertype').create(op.get_bind(), checkfirst=True)
-    sa.Enum('Стрижка', 'Маникюр', name='servicecategory').create(op.get_bind(), checkfirst=True)
-    sa.Enum('Ожидает подтверждения', 'Подтверждена', 'Отменена клиентом', 'Отменена мастером', 'Завершена', name='confirmationstatus').create(op.get_bind(), checkfirst=True)
-    sa.Enum('Наличные', 'Карта', 'Онлайн-оплата', name='paymentmethod').create(op.get_bind(), checkfirst=True)
-    sa.Enum('Оплачено', 'Не оплачено', 'Частично оплачено', name='paymentstatus').create(op.get_bind(), checkfirst=True)
 
     # locations
     op.create_table(
@@ -49,7 +43,7 @@ def upgrade() -> None:
     op.create_table(
         'users',
         sa.Column('id', sa.Integer(), primary_key=True, index=True),
-        sa.Column('user_type', sa.Enum(name='usertype'), nullable=False),
+        sa.Column('user_type', sa.Enum('MASTER', 'CLIENT', 'SALON', 'ADMIN', name='usertype', create_type=True), nullable=False),
         sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
         sa.Column('phone', sa.String(), nullable=False),
         sa.Column('is_phone_verified', sa.Boolean(), nullable=False, server_default=sa.text('false')),
@@ -93,7 +87,7 @@ def upgrade() -> None:
         sa.Column('description', sa.Text(), nullable=True),
         sa.Column('duration', sa.Integer(), nullable=True),
         sa.Column('price', sa.Float(), nullable=True),
-        sa.Column('category', sa.Enum(name='servicecategory'), nullable=True),
+        sa.Column('category', sa.Enum('Стрижка', 'Маникюр', name='servicecategory', create_type=True), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
         sa.Column('owner_user_id', sa.Integer(), sa.ForeignKey('users.id'), nullable=True),
         sa.Column('owner_org_id', sa.Integer(), sa.ForeignKey('organizations.id'), nullable=True),
@@ -119,9 +113,9 @@ def upgrade() -> None:
         sa.Column('service_id', sa.Integer(), sa.ForeignKey('services.id'), nullable=False),
         sa.Column('appointment_code', sa.String(), unique=True, nullable=True),
         sa.Column('appointment_date', sa.DateTime(), nullable=False),
-        sa.Column('confirmation_status', sa.Enum(name='confirmationstatus'), nullable=True),
-        sa.Column('payment_method', sa.Enum(name='paymentmethod'), nullable=True),
-        sa.Column('payment_status', sa.Enum(name='paymentstatus'), nullable=True),
+        sa.Column('confirmation_status', sa.Enum('Ожидает подтверждения', 'Подтверждена', 'Отменена клиентом', 'Отменена мастером', 'Завершена', name='confirmationstatus', create_type=True), nullable=True),
+        sa.Column('payment_method', sa.Enum('Наличные', 'Карта', 'Онлайн-оплата', name='paymentmethod', create_type=True), nullable=True),
+        sa.Column('payment_status', sa.Enum('Оплачено', 'Не оплачено', 'Частично оплачено', name='paymentstatus', create_type=True), nullable=True),
         sa.Column('client_notes', sa.Text(), nullable=True),
         sa.Column('master_notes', sa.Text(), nullable=True),
         sa.Column('service_location', sa.String(), nullable=True),
