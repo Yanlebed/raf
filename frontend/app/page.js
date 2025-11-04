@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import DateRangePicker from "../components/DateRangePicker";
 
 function formatDateISO(d) {
   const y = d.getFullYear();
@@ -108,9 +109,11 @@ export default function HomePage() {
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} style={{ height: 44, padding: "0 12px", borderRadius: 10, border: "1px solid var(--border)" }} />
-            <span className="muted">—</span>
-            <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} style={{ height: 44, padding: "0 12px", borderRadius: 10, border: "1px solid var(--border)" }} />
+            <DateRangePicker
+              initialStart={start}
+              initialEnd={end}
+              onChange={(s, e) => { setStart(s); setEnd(e); }}
+            />
           </div>
           <button className="button" type="submit" style={{ height: 44, padding: "0 18px" }}>Знайти</button>
         </div>

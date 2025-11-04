@@ -20,6 +20,13 @@ export default async function ServiceDetailPage({ params }) {
   }
   return (
     <section>
+      <nav aria-label="breadcrumbs" className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
+        <a href="/" className="nav-link">Головна</a>
+        <span style={{ margin: "0 6px" }}>›</span>
+        <a href="/services" className="nav-link">Послуги</a>
+        <span style={{ margin: "0 6px" }}>›</span>
+        <span>{service.name}</span>
+      </nav>
       <h1 className="hero-title">{service.name}</h1>
       {service.description ? <p className="hero-subtitle">{service.description}</p> : null}
       <div style={{ display: "grid", gap: 8 }}>
@@ -28,6 +35,9 @@ export default async function ServiceDetailPage({ params }) {
         {typeof service.duration === "number" ? <div><span className="muted">Тривалість:</span> {service.duration} хв</div> : null}
         {service.category ? <div><span className="muted">Категорія:</span> {String(service.category)}</div> : null}
         <div><span className="muted">Активна:</span> {String(service.is_active)}</div>
+        {service.owner_user_id ? (
+          <div><span className="muted">Майстер:</span> <a href={`/masters/${service.owner_user_id}`}>Переглянути профіль</a></div>
+        ) : null}
       </div>
       <div style={{ marginTop: 12 }}>
         <a className="button" href={`/book/${service.id}`}>Записатися</a>

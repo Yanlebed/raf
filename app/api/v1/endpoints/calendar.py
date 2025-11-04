@@ -24,6 +24,7 @@ async def get_master_slots(
         master_id: int,
         date: str,
         service_id: Optional[int] = None,
+        duration_minutes: Optional[int] = None,
         db: AsyncSession = Depends(deps.get_db),
         current_user: User = Depends(deps.get_current_active_user),
 ):
@@ -51,11 +52,19 @@ async def get_master_slots(
     )).scalars().all()
     appointments = await get_appointments_for_master_on_date(db, master_id=master_id, day=day)
     service_duration = None
+    if duration_minutes is not None:
+        try:
+            dm = int(duration_minutes)
+            if dm > 0:
+                service_duration = dm
+        except Exception:
+            pass
     if service_id is not None:
         service = await crud_get_service(db, service_id)
         if not service:
             raise HTTPException(status_code=404, detail="Услуга не найдена")
-        service_duration = service.duration or None
+        if service_duration is None:
+            service_duration = service.duration or None
     slots = compute_daily_slots(schedules, appointments, day, service_duration_minutes=service_duration)
     # Return ISO strings
     return [dt.isoformat() for dt in slots]

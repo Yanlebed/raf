@@ -3,11 +3,13 @@ import ServicesFilter from "../../components/ServicesFilter";
 import SearchFilters from "../../components/SearchFilters";
 import MastersResults from "../../components/MastersResults";
 import ResizableColumns from "../../components/ResizableColumns";
+import SortLimitControls from "../../components/SortLimitControls";
+
 
 export default async function ServicesPage({ searchParams }) {
   const city = searchParams?.city ?? "Kyiv";
   const q = searchParams?.q ?? "";
-  const limit = Math.max(1, Math.min(50, parseInt(searchParams?.limit ?? "12", 10) || 12));
+  const limit = Math.max(1, Math.min(100, parseInt(searchParams?.limit ?? "12", 10) || 12));
   const page = Math.max(1, parseInt(searchParams?.page ?? "1", 10) || 1);
   const skip = (page - 1) * limit;
   const start = searchParams?.start ?? "";
@@ -78,6 +80,10 @@ export default async function ServicesPage({ searchParams }) {
     ownersRatings = data.owners_ratings || {};
     ownersLocations = data.owners_locations || {};
   }
+  // Observe price range from current page items
+  const priceValues = (items || []).map((s) => (typeof s.price === "number" ? s.price : null)).filter((n) => n != null);
+  const observedMin = priceValues.length ? Math.min(...priceValues) : null;
+  const observedMax = priceValues.length ? Math.max(...priceValues) : null;
   const showingStart = items.length ? skip + 1 : 0;
   const showingEnd = skip + items.length;
   const hasPrev = page > 1;
@@ -146,39 +152,58 @@ export default async function ServicesPage({ searchParams }) {
   };
   const qsViewGrid = new URLSearchParams(baseParams); qsViewGrid.set("view", "grid");
   const qsViewList = new URLSearchParams(baseParams); qsViewList.set("view", "list");
+  const currentView = filtersInitial.view || "grid";
+  const title = q ? `Результати пошуку "${q}"` : `Пошук майстрів ${cityUa ? `— ${cityUa}` : ""}`;
   return (
     <section>
-      <h1 className="hero-title">Пошук майстрів {cityUa ? `— ${cityUa}` : ""}</h1>
+      <h1 className="hero-title">{title}</h1>
       <p className="hero-subtitle">Знайдіть свого спеціаліста та зручний час</p>
       <ServicesFilter initialQ={q} initialCity={city} initialStart={start} initialEnd={end} initialLimit={limit} />
 
       <div style={{ marginTop: 12 }}>
         <ResizableColumns
-          initialLeftWidth={280}
+          initialLeftWidth={200}
           minLeftWidth={200}
           maxLeftWidth={480}
           rightFixedWidth={360}
           gap={12}
           left={(
-            <SearchFilters initialParams={filtersInitial} />
+            <SearchFilters initialParams={{
+              ...filtersInitial,
+              price_min_suggest: observedMin != null ? String(Math.floor(observedMin)) : "",
+              price_max_suggest: observedMax != null ? String(Math.ceil(observedMax)) : "",
+            }} />
           )}
           middle={(
             <div style={{ display: "grid", gap: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
-            <div className="muted">Вид:</div>
+            <div className="muted" style={{ fontSize: 12 }}>Вид:</div>
             <div style={{ display: "flex", gap: 8 }}>
-              <a href={`?${qsViewGrid.toString()}`} className="nav-link">Плитки</a>
-              <a href={`?${qsViewList.toString()}`} className="nav-link">Список</a>
-              </div>
-            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-              <div className="muted">Сортування:</div>
-              {(() => { const qs = new URLSearchParams(baseParams); qs.delete("sort"); return <a href={`?${qs.toString()}`} className="nav-link">Релевантність</a>; })()}
-              {(() => { const qs = new URLSearchParams(baseParams); qs.set("sort", "distance"); return <a href={`?${qs.toString()}`} className="nav-link">Відстань</a>; })()}
-              {(() => { const qs = new URLSearchParams(baseParams); qs.set("sort", "price_asc"); return <a href={`?${qs.toString()}`} className="nav-link">Ціна ↑</a>; })()}
-              {(() => { const qs = new URLSearchParams(baseParams); qs.set("sort", "price_desc"); return <a href={`?${qs.toString()}`} className="nav-link">Ціна ↓</a>; })()}
-              {(() => { const qs = new URLSearchParams(baseParams); qs.set("sort", "rating_desc"); return <a href={`?${qs.toString()}`} className="nav-link">Рейтинг</a>; })()}
+              <a href={`?${qsViewGrid.toString()}`} className="nav-link" aria-label="Плитки" title="Плитки" style={{ border: "1px solid var(--border)", borderRadius: 6, height: 34, width: 42, display: "inline-flex", alignItems: "center", justifyContent: "center", background: currentView === "grid" ? "var(--accent)" : "#fff", color: currentView === "grid" ? "#fff" : "inherit" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <rect x="3" y="3" width="4.5" height="4.5" rx="0.8" />
+                  <rect x="9.75" y="3" width="4.5" height="4.5" rx="0.8" />
+                  <rect x="16.5" y="3" width="4.5" height="4.5" rx="0.8" />
+                  <rect x="3" y="9.75" width="4.5" height="4.5" rx="0.8" />
+                  <rect x="9.75" y="9.75" width="4.5" height="4.5" rx="0.8" />
+                  <rect x="16.5" y="9.75" width="4.5" height="4.5" rx="0.8" />
+                  <rect x="3" y="16.5" width="4.5" height="4.5" rx="0.8" />
+                  <rect x="9.75" y="16.5" width="4.5" height="4.5" rx="0.8" />
+                  <rect x="16.5" y="16.5" width="4.5" height="4.5" rx="0.8" />
+                </svg>
+              </a>
+              <a href={`?${qsViewList.toString()}`} className="nav-link" aria-label="Список" title="Список" style={{ border: "1px solid var(--border)", borderRadius: 6, height: 34, width: 42, display: "inline-flex", alignItems: "center", justifyContent: "center", background: currentView === "list" ? "var(--accent)" : "#fff", color: currentView === "list" ? "#fff" : "inherit" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                  <rect x="3" y="5" width="18" height="2" rx="1" />
+                  <rect x="3" y="11" width="18" height="2" rx="1" />
+                  <rect x="3" y="17" width="18" height="2" rx="1" />
+                </svg>
+              </a>
             </div>
-      </div>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+              <SortLimitControls params={Object.fromEntries(baseParams.entries())} sort={sort || "rating_desc"} limit={limit} />
+            </div>
+          </div>
           <MastersResults items={items} ownersRatings={ownersRatings} ownersLocations={ownersLocations} userLocation={(user_lat && user_lon) ? { lat: parseFloat(user_lat), lon: parseFloat(user_lon) } : null} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
         <div className="muted">{`Показано ${showingStart}-${showingEnd} з ${total}`}</div>
@@ -188,13 +213,13 @@ export default async function ServicesPage({ searchParams }) {
             className="nav-link"
             aria-disabled={!hasPrev}
             style={{ pointerEvents: hasPrev ? "auto" : "none", opacity: hasPrev ? 1 : 0.5 }}
-          >Попередня</a>
+          >←</a>
           <a
             href={`?${nextParams.toString()}`}
             className="nav-link"
             aria-disabled={!hasNext}
             style={{ pointerEvents: hasNext ? "auto" : "none", opacity: hasNext ? 1 : 0.5 }}
-          >Наступна</a>
+          >→</a>
             </div>
           </div>
             </div>

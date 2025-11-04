@@ -12,4 +12,15 @@ export async function GET(request) {
   return NextResponse.json(data);
 }
 
+export async function PUT(request) {
+  const body = await request.json().catch(() => ({}));
+  const res = await fetchWithAutoRefresh(request, "/users/me", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  return NextResponse.json(data, { status: res.status });
+}
+
 

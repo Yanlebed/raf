@@ -69,11 +69,13 @@ export default function Header() {
     <>
     <nav className="nav" style={{ gap: 16 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 240 }}>
-        <Link href="/" className="brand">
-          <span className="brand-badge" />
-          RAF
-        </Link>
-        <div className="muted" style={{ whiteSpace: "nowrap" }}>Платформа б'юті послуг</div>
+        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
+          <Link href="/" className="brand">
+            <span className="brand-badge" />
+            RAF
+          </Link>
+          <div className="muted" style={{ marginTop: 2 }}>Платформа б'юті послуг</div>
+        </div>
       </div>
 
       <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
@@ -113,54 +115,31 @@ export default function Header() {
           <option>Українська</option>
         </select>
         <Link href={loggedIn ? "/account" : "/login"} className="nav-link" aria-label="Профіль" title="Профіль">
-          <span style={{ display: "inline-block", width: 28, height: 28, borderRadius: "50%", border: "1px solid var(--border)" }} />
-        </Link>
-        <Link href="/services" className="nav-link" aria-label="Категорії" title="Категорії">
-          <span style={{ display: "grid", gridTemplateColumns: "repeat(2, 8px)", gridAutoRows: "8px", gap: 3, padding: 4, border: "1px solid var(--border)", borderRadius: 6 }}>
-            <span style={{ width: 8, height: 8, background: "var(--accent)" }} />
-            <span style={{ width: 8, height: 8, background: "var(--accent)" }} />
-            <span style={{ width: 8, height: 8, background: "var(--accent)" }} />
-            <span style={{ width: 8, height: 8, background: "var(--accent)" }} />
+          <span aria-hidden style={{ display: "inline-flex", width: 28, height: 28, borderRadius: "50%", border: "1px solid var(--border)", alignItems: "center", justifyContent: "center", background: "#fff" }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
           </span>
         </Link>
-        <button className="button" onClick={() => { setLead({ name: "", phone: "", message: "" }); setLeadMsg(""); setShowLead(true); }}>Залишити заявку</button>
+        <Link href="/services" className="nav-link" aria-label="Категорії" title="Категорії">
+          <span aria-hidden style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: 4, border: "1px solid var(--border)", borderRadius: 6 }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <rect x="3" y="3" width="4.5" height="4.5" rx="0.8" />
+              <rect x="9.75" y="3" width="4.5" height="4.5" rx="0.8" />
+              <rect x="16.5" y="3" width="4.5" height="4.5" rx="0.8" />
+              <rect x="3" y="9.75" width="4.5" height="4.5" rx="0.8" />
+              <rect x="9.75" y="9.75" width="4.5" height="4.5" rx="0.8" />
+              <rect x="16.5" y="9.75" width="4.5" height="4.5" rx="0.8" />
+              <rect x="3" y="16.5" width="4.5" height="4.5" rx="0.8" />
+              <rect x="9.75" y="16.5" width="4.5" height="4.5" rx="0.8" />
+              <rect x="16.5" y="16.5" width="4.5" height="4.5" rx="0.8" />
+            </svg>
+          </span>
+        </Link>
       </div>
     </nav>
-    {showLead ? (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000 }}>
-        <div style={{ background: "#fff", borderRadius: 12, border: "1px solid var(--border)", width: "min(520px, 96vw)", padding: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <strong>Залишити заявку</strong>
-            <button className="nav-link" onClick={() => setShowLead(false)} style={{ border: 0, background: "transparent" }}>✕</button>
-          </div>
-          <form onSubmit={async (e) => {
-            e.preventDefault();
-            setLeadMsg("");
-            const res = await fetch("/api/lead", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lead) });
-            if (res.ok) { setLeadMsg("Дякуємо! Ми з вами зв'яжемось."); setLead({ name: "", phone: "", message: "" }); }
-            else setLeadMsg("Сталася помилка. Спробуйте пізніше.");
-          }} style={{ display: "grid", gap: 10 }}>
-            <label>
-              <div className="muted" style={{ marginBottom: 4 }}>Ім'я</div>
-              <input value={lead.name} onChange={(e) => setLead({ ...lead, name: e.target.value })} required style={{ width: "100%", height: 40, padding: "0 12px", borderRadius: 8, border: "1px solid var(--border)" }} />
-            </label>
-            <label>
-              <div className="muted" style={{ marginBottom: 4 }}>Телефон</div>
-              <input value={lead.phone} onChange={(e) => setLead({ ...lead, phone: e.target.value })} required style={{ width: "100%", height: 40, padding: "0 12px", borderRadius: 8, border: "1px solid var(--border)" }} />
-            </label>
-            <label>
-              <div className="muted" style={{ marginBottom: 4 }}>Повідомлення</div>
-              <textarea value={lead.message} onChange={(e) => setLead({ ...lead, message: e.target.value })} rows={4} style={{ width: "100%", padding: 12, borderRadius: 8, border: "1px solid var(--border)" }} />
-            </label>
-            {leadMsg ? <div className="muted">{leadMsg}</div> : null}
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <button type="button" className="nav-link" onClick={() => setShowLead(false)} style={{ border: "1px solid var(--border)", borderRadius: 6, height: 40, padding: "0 12px" }}>Скасувати</button>
-              <button className="button" type="submit">Відправити</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    ) : null}
+    
     </>
   );
 }
