@@ -33,7 +33,11 @@ templates = Jinja2Templates(directory=BASE_DIR / 'templates')
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / 'static'), name="static")
-app.mount("/app", StaticFiles(directory="frontend/build", html=True), name="frontend")
+
+# Serve prebuilt frontend (CRA-style) only if present. In dev we use separate Next.js container.
+FRONTEND_BUILD_DIR = Path("frontend/build")
+if FRONTEND_BUILD_DIR.exists():
+    app.mount("/app", StaticFiles(directory=str(FRONTEND_BUILD_DIR), html=True), name="frontend")
 
 
 @app.get("/search", response_class=HTMLResponse)
@@ -66,6 +70,7 @@ async def apply(request: Request):
     return templates.TemplateResponse("apply.html", {"request": request})
 
 
-@app.exception_handler(404)
-async def custom_404_handler(request: Request, exc):
-    return FileResponse('frontend/build/index.html')
+if FRONTEND_BUILD_DIR.exists():
+    @app.exception_handler(404)
+    async def custom_404_handler(request: Request, exc):
+        return FileResponse(FRONTEND_BUILD_DIR / 'index.html')

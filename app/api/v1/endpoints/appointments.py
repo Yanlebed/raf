@@ -27,38 +27,58 @@ async def read_appointments(
         skip: int = 0,
         limit: conint(gt=0, le=100) = 100,
         order: str = "asc",
+        start_date: str | None = None,
+        end_date: str | None = None,
+        status: str | None = None,
         current_user: User = Depends(deps.get_current_active_user),
 ):
     ordering = asc(AppointmentModel.appointment_date) if order != "desc" else desc(AppointmentModel.appointment_date)
     items = []
     total = 0
+    # Build common filters
+    from datetime import datetime
+    date_filters = []
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date if "T" in start_date else f"{start_date}T00:00:00")
+            date_filters.append(AppointmentModel.appointment_date >= start_dt)
+        except ValueError:
+            pass
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date if "T" in end_date else f"{end_date}T23:59:59")
+            date_filters.append(AppointmentModel.appointment_date <= end_dt)
+        except ValueError:
+            pass
+    status_filter = [AppointmentModel.confirmation_status == status] if status else []
+
     if current_user.user_type == UserType.CLIENT:
         total = (await db.execute(
-            select(func.count(AppointmentModel.id)).where(AppointmentModel.client_id == current_user.id)
+            select(func.count(AppointmentModel.id)).where(AppointmentModel.client_id == current_user.id, *date_filters, *status_filter)
         )).scalar_one()
         result = await db.execute(
             select(AppointmentModel)
-            .where(AppointmentModel.client_id == current_user.id)
+            .where(AppointmentModel.client_id == current_user.id, *date_filters, *status_filter)
             .order_by(ordering)
             .offset(skip).limit(limit)
         )
         items = result.scalars().all()
     elif current_user.user_type == UserType.MASTER:
         total = (await db.execute(
-            select(func.count(AppointmentModel.id)).where(AppointmentModel.master_id == current_user.id)
+            select(func.count(AppointmentModel.id)).where(AppointmentModel.master_id == current_user.id, *date_filters, *status_filter)
         )).scalar_one()
         result = await db.execute(
             select(AppointmentModel)
-            .where(AppointmentModel.master_id == current_user.id)
+            .where(AppointmentModel.master_id == current_user.id, *date_filters, *status_filter)
             .order_by(ordering)
             .offset(skip).limit(limit)
         )
         items = result.scalars().all()
     else:
         if current_user.user_type == UserType.ADMIN:
-            total = (await db.execute(select(func.count(AppointmentModel.id)))).scalar_one()
+            total = (await db.execute(select(func.count(AppointmentModel.id)).where(*date_filters, *status_filter))).scalar_one()
             result = await db.execute(
-                select(AppointmentModel).order_by(ordering).offset(skip).limit(limit)
+                select(AppointmentModel).where(*date_filters, *status_filter).order_by(ordering).offset(skip).limit(limit)
             )
             items = result.scalars().all()
         else:
@@ -73,11 +93,11 @@ async def read_appointments(
                     select(UserOrganization.user_id).where(UserOrganization.organization_id.in_(org_ids))
                 )).scalars().all()
                 total = (await db.execute(
-                    select(func.count(AppointmentModel.id)).where(AppointmentModel.master_id.in_(master_ids))
+                    select(func.count(AppointmentModel.id)).where(AppointmentModel.master_id.in_(master_ids), *date_filters, *status_filter)
                 )).scalar_one()
                 result = await db.execute(
                     select(AppointmentModel)
-                    .where(AppointmentModel.master_id.in_(master_ids))
+                    .where(AppointmentModel.master_id.in_(master_ids), *date_filters, *status_filter)
                     .order_by(ordering)
                     .offset(skip).limit(limit)
                 )

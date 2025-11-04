@@ -16,7 +16,9 @@ from app.db.base import Base  # Импортируйте ваши модели �
 
 # Настройка логирования
 config = context.config
-fileConfig(config.config_file_name)
+# Load logging config only when alembic.ini is present
+if config.config_file_name:
+    fileConfig(config.config_file_name)
 
 # Устанавливаем синхронный URL базы данных
 config.set_main_option('sqlalchemy.url', settings.SQLALCHEMY_SYNC_DATABASE_URI)

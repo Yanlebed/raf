@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.location import Location
 from app.models.organization import Organization
 from app.schemas.service import ServiceCreate, ServiceUpdate
+from app.core.enums import ServiceCategory
 
 
 async def get_service(db: AsyncSession, service_id: int) -> Optional[Service]:
@@ -37,7 +38,13 @@ async def get_services_by_city(db: AsyncSession, city: str, skip: int = 0, limit
         .limit(limit)
     )
     if q:
-        stmt = stmt.where((Service.name.ilike(f"%{q}%")) | (Service.description.ilike(f"%{q}%")))
+        pattern = f"%{q}%"
+        stmt = stmt.where(
+            (Service.name.ilike(pattern)) |
+            (Service.description.ilike(pattern)) |
+            (User.name.ilike(pattern)) |
+            (Organization.name.ilike(pattern))
+        )
     result = await db.execute(stmt)
     return result.scalars().all()
 
@@ -59,7 +66,11 @@ async def count_services_by_city(db: AsyncSession, city: str, q: Opt[str] = None
 
 
 async def create_service(db: AsyncSession, service_in: ServiceCreate) -> Service:
-    db_service = Service(**service_in.dict())
+    payload = service_in.dict()
+    cat = payload.get("category")
+    if isinstance(cat, ServiceCategory):
+        payload["category"] = cat.value
+    db_service = Service(**payload)
     db.add(db_service)
     await db.commit()
     await db.refresh(db_service)
