@@ -16,6 +16,7 @@ from sqlalchemy import func
 from app.models.location import Location
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash, verify_password
+from app.utils.locations import normalize_city_label
 
 
 async def get_some_user(db: AsyncSession, user_id: int):
@@ -37,8 +38,9 @@ async def create_new_user(db: AsyncSession, user_in: UserCreate):
     hashed_password = await get_password_hash(user_in.password)
     # Resolve location by city if provided
     location_id = None
-    if user_in.city:
-        loc_row = (await db.execute(select(Location).where(Location.city == user_in.city))).scalars().first()
+    normalized_city = normalize_city_label(user_in.city)
+    if normalized_city:
+        loc_row = (await db.execute(select(Location).where(Location.city == normalized_city))).scalars().first()
         if loc_row:
             location_id = loc_row.id
     db_user = User(
@@ -47,7 +49,7 @@ async def create_new_user(db: AsyncSession, user_in: UserCreate):
         email=user_in.email,
         name=user_in.name,
         hashed_password=hashed_password,
-        city=user_in.city,
+        city=normalized_city or user_in.city,
         address=user_in.address,
         location_id=location_id,
     )

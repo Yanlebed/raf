@@ -7,7 +7,7 @@ from app.db.session import AsyncSessionLocal
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordBearer
 
-from app.models.user import User, UserStatus
+from app.models.user import User
 from app.crud.user import get_some_user
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login/access-token")
@@ -45,6 +45,6 @@ async def get_current_user(
 async def get_current_active_user(
     current_user: User = Depends(get_current_user)
 ) -> User:
-    if current_user.status != UserStatus.ACTIVE:
+    if not getattr(current_user, "is_active", False):
         raise HTTPException(status_code=400, detail="Пользователь не активен")
     return current_user

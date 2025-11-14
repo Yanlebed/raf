@@ -1,4 +1,4 @@
-import { apiFetch } from "./api";
+import { apiFetch, parseApiError } from "./api";
 
 function setCookie(name, value, maxAgeSeconds) {
   if (typeof document === "undefined") return;
@@ -23,8 +23,11 @@ export async function loginWithPassword({ username, password }) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    const err = new Error(data?.detail || "Login failed");
+    const { message, code } = parseApiError(data, "Login failed");
+    const err = new Error(message);
     err.status = res.status;
+    if (code) err.code = code;
+    err.data = data;
     throw err;
   }
   return { ok: true };
@@ -52,8 +55,11 @@ export async function sendOtp({ phone }) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    const err = new Error(data?.detail || "Failed to send code");
+    const { message, code } = parseApiError(data, "Failed to send code");
+    const err = new Error(message);
     err.status = res.status;
+    if (code) err.code = code;
+    err.data = data;
     throw err;
   }
   return res.json();
@@ -67,8 +73,11 @@ export async function loginWithOtp({ phone, code }) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    const err = new Error(data?.detail || "OTP login failed");
+    const { message, code } = parseApiError(data, "OTP login failed");
+    const err = new Error(message);
     err.status = res.status;
+    if (code) err.code = code;
+    err.data = data;
     throw err;
   }
   return { ok: true };
@@ -82,8 +91,11 @@ export async function updateMe(payload) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    const err = new Error(data?.detail || "Failed to update profile");
+    const { message, code } = parseApiError(data, "Failed to update profile");
+    const err = new Error(message);
     err.status = res.status;
+    if (code) err.code = code;
+    err.data = data;
     throw err;
   }
   return res.json();

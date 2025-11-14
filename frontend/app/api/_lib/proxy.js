@@ -27,7 +27,7 @@ export async function fetchWithAutoRefresh(request, path, init = {}) {
   const base = getBackendBase();
   const refreshToken = request.cookies.get("refresh_token")?.value;
   if (!refreshToken) return res;
-  const refreshRes = await fetch(`${base}/auth/refresh`, {
+  const refreshRes = await fetch(`${base}/login/refresh`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh_token: refreshToken }),

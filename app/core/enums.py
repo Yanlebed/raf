@@ -24,6 +24,12 @@ class ServiceCategory(str, Enum):
     MANICURE = "Маникюр"
 
 
+class City(str, Enum):
+    KYIV = "Kyiv"
+    LVIV = "Lviv"
+    ODESA = "Odesa"
+
+
 class ConfirmationStatus(str, Enum):
     PENDING = "Ожидает подтверждения"
     CONFIRMED = "Подтверждена"
