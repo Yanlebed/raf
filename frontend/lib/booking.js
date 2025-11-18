@@ -1,3 +1,5 @@
+import { parseApiError } from "./api";
+
 export async function placeHold({ master_id, service_id, start_time, duration_minutes }) {
   const res = await fetch("/api/holds", {
     method: "POST",
@@ -6,8 +8,11 @@ export async function placeHold({ master_id, service_id, start_time, duration_mi
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    const err = new Error(data?.detail || "Failed to place hold");
+    const { message, code } = parseApiError(data, "Failed to place hold");
+    const err = new Error(message);
     err.status = res.status;
+    if (code) err.code = code;
+    err.data = data;
     throw err;
   }
   return res.json();
@@ -25,8 +30,11 @@ export async function createAppointment(payload) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    const err = new Error(data?.detail || "Failed to create appointment");
+    const { message, code } = parseApiError(data, "Failed to create appointment");
+    const err = new Error(message);
     err.status = res.status;
+    if (code) err.code = code;
+    err.data = data;
     throw err;
   }
   return res.json();

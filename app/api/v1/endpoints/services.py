@@ -7,15 +7,23 @@ from app import schemas
 from app.api import deps
 
 from app.models.user import User, UserType
-from app.schemas.service import Service
+from app.schemas.service import (
+    Service,
+    ServicesPublicResponse,
+    AvailableServicesResponse,
+)
+from app.schemas.review import PublicReviewsResponse, PublicReviewItem
 from app.core.enums import OrganizationRole
 from app.models.user_organization import UserOrganization
 from sqlalchemy.future import select
 from app.models.service import Service as ServiceModel
 from app.models.master_schedule import MasterSchedule
+from app.models.master_photo import MasterPhoto
+from app.models.review import Review as ReviewModel
 from app.crud.appointment import get_appointments_for_master_on_date
 from app.utils.availability import compute_daily_slots
 from app.utils.redis_client import get_redis
+from app.utils.locations import normalize_city_label
 
 from app.crud.service import (
     get_service as crud_get_service,
@@ -28,7 +36,9 @@ from app.crud.service import (
 )
 
 router = APIRouter()
-@router.get("/public/available")
+
+
+@router.get("/public/available", response_model=AvailableServicesResponse)
 async def available_services(
     *,
     city: str,
@@ -36,10 +46,8 @@ async def available_services(
     end_date: str,
     q: str | None = None,
     db: AsyncSession = Depends(deps.get_db),
-):
-    # Normalize city
-    city_map = {"Київ": "Kyiv", "Львів": "Lviv", "Одеса": "Odesa"}
-    city_norm = city_map.get(city, city)
+) -> AvailableServicesResponse:
+    city_norm = normalize_city_label(city) or city
     base = await crud_get_services_by_city(db, city=city_norm, skip=0, limit=2000, q=q)
     from datetime import datetime, timedelta
     try:
@@ -65,10 +73,10 @@ async def available_services(
     )).scalars().all()
     allowed = set(sched_rows)
     ids = [s.id for s in base if s.owner_user_id in allowed]
-    return {"service_ids": ids}
+    return AvailableServicesResponse(service_ids=ids)
 
 
-@router.get("/public")
+@router.get("/public", response_model=ServicesPublicResponse)
 async def read_public_services(
     skip: int = 0,
     limit: int = 100,
@@ -88,16 +96,19 @@ async def read_public_services(
     max_distance_km: float | None = None,
     sort: str | None = None,
     db: AsyncSession = Depends(deps.get_db),
-):
-    # Normalize city (accept UA labels)
-    city_map = {
-        "Київ": "Kyiv",
-        "Львів": "Lviv",
-        "Одеса": "Odesa",
-    }
-    city_norm = city_map.get(city, city)
-    # Base list by city
-    base = await crud_get_services_by_city(db, city=city_norm, skip=0, limit=10000, q=q)
+) -> ServicesPublicResponse:
+    city_norm = normalize_city_label(city) or city
+    # Base list by city + basic price filter in DB
+    base = await crud_get_services_by_city(
+        db,
+        city=city_norm,
+        skip=0,
+        limit=10000,
+        q=q,
+        price_min=price_min,
+        price_max=price_max,
+        rating_min=rating_min,
+    )
     # Optional date filtering: keep services that have any free slot in the range
     if start_date and end_date:
         from datetime import datetime, timedelta
@@ -129,11 +140,6 @@ async def read_public_services(
             items = base
     else:
         items = base
-    # Basic price filter
-    if price_min is not None:
-        items = [s for s in items if getattr(s, "price", None) is not None and s.price >= price_min]
-    if price_max is not None:
-        items = [s for s in items if getattr(s, "price", None) is not None and s.price <= price_max]
 
     # Reception filters (best-effort mapping)
     if any(v is True for v in [accept_home, at_salon, own_premises, visiting_client]):
@@ -170,20 +176,6 @@ async def read_public_services(
             return True
 
         items = [s for s in items if matches(s)]
-
-    # Rating filter (compute per owner)
-    if rating_min is not None:
-        from app.models.review import Review as ReviewModel
-        from sqlalchemy import func as sa_func
-        owner_ids = list({s.owner_user_id for s in items if s.owner_user_id})
-        if owner_ids:
-            rows = (await db.execute(
-                select(ReviewModel.master_id, sa_func.avg(ReviewModel.rating))
-                .where(ReviewModel.master_id.in_(owner_ids))
-                .group_by(ReviewModel.master_id)
-            )).all()
-            avg_map = {mid: float(avg or 0) for (mid, avg) in rows}
-            items = [s for s in items if avg_map.get(s.owner_user_id, 0.0) >= rating_min]
 
     # Set default sort if not provided
     if not sort:
@@ -368,7 +360,7 @@ async def read_public_service_detail(
     return service
 
 
-@router.get("/public/{service_id}/slots")
+@router.get("/public/{service_id}/slots", response_model=List[str])
 async def read_public_service_slots(
     *,
     service_id: int,
@@ -405,7 +397,7 @@ async def read_public_service_slots(
     return result
 
 
-@router.get("/public/{service_id}/masters")
+@router.get("/public/{service_id}/masters", response_model=List[dict])
 async def read_public_service_masters(
     *,
     service_id: int,
@@ -434,7 +426,7 @@ async def read_public_service_masters(
     ]
 
 
-@router.get("/public/{service_id}/masters/{master_id}/slots")
+@router.get("/public/{service_id}/masters/{master_id}/slots", response_model=List[str])
 async def read_public_service_master_slots(
     *,
     service_id: int,
@@ -617,7 +609,7 @@ async def delete_service_endpoint(
 
 
 # Public master slots with optional custom duration
-@router.get("/public/masters/{master_id}/slots")
+@router.get("/public/masters/{master_id}/slots", response_model=List[str])
 async def read_public_master_slots(
     *,
     master_id: int,
@@ -644,3 +636,44 @@ async def read_public_master_slots(
             pass
     slots = compute_daily_slots(schedules, appointments, day, service_duration_minutes=dur)
     return [dt.isoformat() for dt in slots]
+
+
+@router.get("/public/masters/{master_id}/photos", response_model=List[str])
+async def read_public_master_photos(
+    *,
+    master_id: int,
+    db: AsyncSession = Depends(deps.get_db),
+):
+    rows = (await db.execute(select(MasterPhoto).where(MasterPhoto.master_id == master_id))).scalars().all()
+    return [getattr(p, "photo_url", None) for p in rows if getattr(p, "photo_url", None)]
+
+
+@router.get("/public/masters/{master_id}/reviews", response_model=PublicReviewsResponse)
+async def read_public_master_reviews(
+    *,
+    master_id: int,
+    skip: int = 0,
+    limit: int = 20,
+    order: str = "desc",
+    db: AsyncSession = Depends(deps.get_db),
+):
+    from sqlalchemy import desc as sa_desc, asc as sa_asc
+    ordering = sa_desc(ReviewModel.created_at) if order == "desc" else sa_asc(ReviewModel.created_at)
+    total = (await db.execute(select(func.count(ReviewModel.id)).where(ReviewModel.master_id == master_id))).scalar_one()
+    result = await db.execute(
+        select(ReviewModel).where(ReviewModel.master_id == master_id).order_by(ordering).offset(skip).limit(limit)
+    )
+    items = result.scalars().all()
+    out: List[PublicReviewItem] = []
+    for r in items:
+        out.append(
+            PublicReviewItem(
+                id=r.id,
+                rating=int(getattr(r, "rating", 0)),
+                comment=getattr(r, "comment", None),
+                created_at=getattr(r, "created_at", None),
+                verified=bool(getattr(r, "verified", False)),
+                anonymous=bool(getattr(r, "anonymous", False)),
+            )
+        )
+    return PublicReviewsResponse(items=out, skip=skip, limit=limit, total=total)

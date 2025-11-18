@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -36,3 +36,19 @@ class Review(ReviewInDBBase):
 
 class ReviewInDB(ReviewInDBBase):
     pass
+
+
+class PublicReviewItem(BaseModel):
+    id: int
+    rating: int
+    comment: Optional[str] = None
+    created_at: Optional[datetime] = None
+    verified: bool
+    anonymous: bool
+
+
+class PublicReviewsResponse(BaseModel):
+    items: List[PublicReviewItem]
+    skip: int
+    limit: int
+    total: int

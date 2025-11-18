@@ -22,7 +22,16 @@ async def get_services(db: AsyncSession, skip: int = 0, limit: int = 100) -> Seq
     return result.scalars().all()
 
 
-async def get_services_by_city(db: AsyncSession, city: str, skip: int = 0, limit: int = 100, q: Opt[str] = None) -> Sequence[Service]:
+async def get_services_by_city(
+    db: AsyncSession,
+    city: str,
+    skip: int = 0,
+    limit: int = 100,
+    q: Opt[str] = None,
+    price_min: Opt[float] = None,
+    price_max: Opt[float] = None,
+    rating_min: Opt[float] = None,
+) -> Sequence[Service]:
     # Single-query approach: join to owner_user and owner_org locations via aliases
     LUser = aliased(Location)
     LOrg = aliased(Location)
@@ -34,17 +43,37 @@ async def get_services_by_city(db: AsyncSession, city: str, skip: int = 0, limit
         .outerjoin(Organization, Organization.id == Service.owner_org_id)
         .outerjoin(LOrg, LOrg.id == Organization.location_id)
         .where((LUser.city == city) | (LOrg.city == city))
-        .offset(skip)
-        .limit(limit)
     )
     if q:
         pattern = f"%{q}%"
         stmt = stmt.where(
-            (Service.name.ilike(pattern)) |
-            (Service.description.ilike(pattern)) |
-            (User.name.ilike(pattern)) |
-            (Organization.name.ilike(pattern))
+            (Service.name.ilike(pattern))
+            | (Service.description.ilike(pattern))
+            | (User.name.ilike(pattern))
+            | (Organization.name.ilike(pattern))
         )
+    if price_min is not None:
+        stmt = stmt.where(Service.price.is_not(None), Service.price >= price_min)
+    if price_max is not None:
+        stmt = stmt.where(Service.price.is_not(None), Service.price <= price_max)
+    if rating_min is not None:
+        from app.models.review import Review as ReviewModel
+
+        avg_subq = (
+            select(
+                ReviewModel.master_id.label("mid"),
+                func.avg(ReviewModel.rating).label("avg_rating"),
+            )
+            .group_by(ReviewModel.master_id)
+            .subquery()
+        )
+        # Join on owner_user_id; services without an owner or rating will get NULL avg_rating
+        stmt = (
+            stmt.outerjoin(avg_subq, avg_subq.c.mid == Service.owner_user_id).where(
+                func.coalesce(avg_subq.c.avg_rating, 0) >= rating_min
+            )
+        )
+    stmt = stmt.offset(skip).limit(limit)
     result = await db.execute(stmt)
     return result.scalars().all()
 

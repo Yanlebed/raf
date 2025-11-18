@@ -199,11 +199,11 @@ export default async function ServicesPage({ searchParams }) {
                   <rect x="3" y="17" width="18" height="2" rx="1" />
                 </svg>
               </a>
-            </div>
+              </div>
             <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
               <SortLimitControls params={Object.fromEntries(baseParams.entries())} sort={sort || "rating_desc"} limit={limit} />
             </div>
-          </div>
+      </div>
           <MastersResults items={items} ownersRatings={ownersRatings} ownersLocations={ownersLocations} userLocation={(user_lat && user_lon) ? { lat: parseFloat(user_lat), lon: parseFloat(user_lon) } : null} />
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
         <div className="muted">{`Показано ${showingStart}-${showingEnd} з ${total}`}</div>

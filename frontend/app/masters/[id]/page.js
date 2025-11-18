@@ -1,5 +1,6 @@
 import { getSiteOrigin } from "../../../lib/site";
 import MasterServicesAndSlots from "../../../components/MasterServicesAndSlots";
+import AnchorTabs from "../../../components/AnchorTabs";
 
 async function fetchMaster(id) {
   const origin = getSiteOrigin();
@@ -25,6 +26,21 @@ async function fetchServicesByMaster(city, masterId) {
   return items.filter((s) => s.owner_user_id === Number(masterId));
 }
 
+async function fetchPhotos(masterId) {
+  const origin = getSiteOrigin();
+  const res = await fetch(`${origin}/api/services/public/masters/${masterId}/photos`, { cache: "no-store" });
+  if (!res.ok) return [];
+  const data = await res.json().catch(() => []);
+  return Array.isArray(data) ? data : [];
+}
+
+async function fetchReviews(masterId) {
+  const origin = getSiteOrigin();
+  const res = await fetch(`${origin}/api/services/public/masters/${masterId}/reviews?limit=10&order=desc`, { cache: "no-store" });
+  const data = res.ok ? await res.json() : { items: [] };
+  return data.items || [];
+}
+
 export default async function MasterDetailPage({ params }) {
   const { id } = params;
   const master = await fetchMaster(id);
@@ -38,6 +54,7 @@ export default async function MasterDetailPage({ params }) {
   }
   const rating = await fetchRatingSummary(id);
   const services = await fetchServicesByMaster(master.city || "Kyiv", id);
+  const [photos, reviews] = await Promise.all([fetchPhotos(id), fetchReviews(id)]);
   return (
     <section>
       <nav aria-label="breadcrumbs" className="muted" style={{ fontSize: 13, marginBottom: 8 }}>
@@ -56,6 +73,55 @@ export default async function MasterDetailPage({ params }) {
       </div>
       <p className="hero-subtitle">{master.city || "Місто"}{master.address ? `, ${master.address}` : ""}</p>
       {master.short_description ? <div className="muted" style={{ marginTop: 6 }}>{master.short_description}</div> : null}
+
+      <div style={{ marginTop: 16 }}>
+        <AnchorTabs items={[
+          { href: '#info', label: 'Загальна інформація' },
+          { href: '#portfolio', label: 'Портфоліо' },
+          { href: '#reviews', label: 'Відгуки' },
+        ]} />
+      </div>
+
+      <div id="info" style={{ marginTop: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Загальна інформація</h3>
+        <div style={{ display: "grid", gap: 8 }}>
+          <div><span className="muted">Місто:</span> {master.city || "—"}</div>
+          <div><span className="muted">Адреса:</span> {master.address || "—"}</div>
+          <div><span className="muted">Досвід:</span> {typeof master.experience_years === "number" ? `${master.experience_years} років` : "—"}</div>
+        </div>
+      </div>
+
+      <div id="portfolio" style={{ marginTop: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Портфоліо</h3>
+        {photos.length === 0 ? (
+          <div className="muted">Поки що немає фото.</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+            {photos.map((url, i) => (
+              <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" style={{ display: "block", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+                <img src={url} alt="Робота майстра" style={{ width: "100%", height: 140, objectFit: "cover" }} />
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div id="reviews" style={{ marginTop: 16 }}>
+        <h3 style={{ marginTop: 0 }}>Відгуки</h3>
+        <div className="muted">Середній рейтинг: {typeof rating?.avg === "number" ? rating.avg.toFixed(1) : "—"}{typeof rating?.count === "number" ? ` (${rating.count})` : ""}</div>
+        <div style={{ display: "grid", gap: 8, marginTop: 6 }}>
+          {reviews.length === 0 ? <div className="muted">Немає відгуків.</div> : reviews.map((r) => (
+            <div key={r.id} style={{ border: "1px solid var(--border)", borderRadius: 8, padding: 10, background: "#fff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                <div>⭐ {Number(r.rating).toFixed(1)}</div>
+                <div className="muted" style={{ fontSize: 12 }}>{r.created_at ? new Date(r.created_at).toLocaleString() : ""}</div>
+              </div>
+              {r.comment ? <div style={{ marginTop: 6 }}>{r.comment}</div> : null}
+              {r.verified ? <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>Підтверджено записом</div> : null}
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div style={{ marginTop: 16 }}>
         {services.length === 0 ? (

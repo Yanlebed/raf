@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Dict
 from pydantic import BaseModel
 from app.core.enums import ServiceCategory
 
@@ -45,3 +45,26 @@ class Service(ServiceInDBBase):
 
 class ServiceInDB(ServiceInDBBase):
     pass
+
+
+class OwnerRating(BaseModel):
+    avg: float
+    count: int
+
+
+class OwnerLocation(BaseModel):
+    lat: float
+    lon: float
+
+
+class ServicesPublicResponse(BaseModel):
+    items: List[Service]
+    skip: int
+    limit: int
+    total: int
+    owners_ratings: Dict[int, OwnerRating]
+    owners_locations: Dict[int, OwnerLocation]
+
+
+class AvailableServicesResponse(BaseModel):
+    service_ids: List[int]

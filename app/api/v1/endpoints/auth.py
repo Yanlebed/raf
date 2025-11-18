@@ -19,6 +19,7 @@ from sqlalchemy import and_, func
 from app.models.phone_verification import PhoneVerification
 from app.models.otp_attempt import OtpAttempt
 from jose import jwt, JWTError
+from app.core.errors import bad_request, too_many_requests
 
 router = APIRouter()
 
@@ -38,7 +39,7 @@ async def login_access_token(
 ):
     user = await authenticate_user(db, login.username, login.password)
     if not user:
-        raise HTTPException(status_code=400, detail="Неверное имя пользователя или пароль")
+        raise bad_request(code="invalid_credentials", message="Неверное имя пользователя или пароль")
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = await create_access_token(
         data={"user_id": user.id}, expires_delta=access_token_expires
@@ -70,12 +71,12 @@ async def send_otp(
         )
     )).scalar_one()
     if sends_last_hour >= settings.OTP_MAX_SENDS_PER_HOUR:
-        raise HTTPException(status_code=429, detail="Превышен лимит отправки кодов. Попробуйте позже.")
+        raise too_many_requests(code="otp_send_limit", message="Превышен лимит отправки кодов. Попробуйте позже.")
     # IP throttling via Redis (if configured)
     ip = request.client.host if request.client else "unknown"
     count_ip = await incr_with_ttl(f"otp:send:{ip}", 3600)
     if count_ip and count_ip > settings.OTP_MAX_SENDS_PER_HOUR_IP:
-        raise HTTPException(status_code=429, detail="Превышен лимит отправки с этого IP")
+        raise too_many_requests(code="otp_send_ip_limit", message="Превышен лимит отправки с этого IP")
     await send_sms_code(db, payload.phone)
     return {"msg": "OTP sent"}
 
@@ -100,20 +101,20 @@ async def login_with_otp(
         )
     )).scalar_one()
     if failed >= settings.OTP_MAX_FAILED_VERIFICATIONS_PER_HOUR:
-        raise HTTPException(status_code=429, detail="Слишком много неудачных попыток. Попробуйте позже.")
+        raise too_many_requests(code="otp_verify_limit", message="Слишком много неудачных попыток. Попробуйте позже.")
 
     is_verified = await verify_sms_code(db, payload.phone, payload.code)
     if not is_verified:
         ip = request.client.host if request.client else "unknown"
         failed_ip = await incr_with_ttl(f"otp:verify:{ip}", 3600)
         if failed_ip and failed_ip > settings.OTP_MAX_FAILED_PER_HOUR_IP:
-            raise HTTPException(status_code=429, detail="Слишком много попыток с этого IP")
+            raise too_many_requests(code="otp_verify_ip_limit", message="Слишком много попыток с этого IP")
         db.add(OtpAttempt(phone_number=payload.phone, success=False))
         await db.commit()
-        raise HTTPException(status_code=400, detail="Неверный или истекший код")
+        raise bad_request(code="invalid_otp", message="Неверный или истекший код")
     user = await get_user_by_phone(db, phone=payload.phone)
     if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+        raise HTTPException(status_code=404, detail={"code": "user_not_found", "message": "Пользователь не найден"})
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = await create_access_token(
         data={"user_id": user.id}, expires_delta=access_token_expires
@@ -124,6 +125,28 @@ async def login_with_otp(
     return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token}
 
 
+class DevLoginRequest(BaseModel):
+    phone: str
+
+
+@router.post("/dev-login", response_model=Token)
+async def dev_login(
+        *,
+        payload: DevLoginRequest,
+        db: AsyncSession = Depends(get_db),
+):
+    # Temporary developer login: issue tokens for the provided phone without OTP
+    # Create the user if it does not exist
+    user = await get_user_by_phone(db, phone=payload.phone)
+    if not user:
+        user = await create_new_user(db, UserCreate(user_type=UserType.CLIENT, phone=payload.phone, password="dev"))
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = await create_access_token(
+        data={"user_id": user.id}, expires_delta=access_token_expires
+    )
+    refresh_token = await create_refresh_token(data={"user_id": user.id}, db=db)
+    return {"access_token": access_token, "token_type": "bearer", "refresh_token": refresh_token}
+
 class RefreshRequest(BaseModel):
     refresh_token: str
 
@@ -133,13 +156,13 @@ async def refresh_access_token(payload: RefreshRequest, db: AsyncSession = Depen
     try:
         decoded = jwt.decode(payload.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         if decoded.get("type") != "refresh":
-            raise HTTPException(status_code=400, detail="Некорректный токен")
+            raise bad_request(code="invalid_refresh_token", message="Некорректный токен")
         user_id = decoded.get("user_id")
         jti = decoded.get("jti")
         if not user_id:
             raise HTTPException(status_code=400, detail="Некорректный токен")
     except JWTError:
-        raise HTTPException(status_code=401, detail="Недействительный refresh токен")
+        raise HTTPException(status_code=401, detail={"code": "invalid_refresh_token", "message": "Недействительный refresh токен"})
     # Check token not revoked/expired
     from app.models.refresh_token import RefreshToken
     from sqlalchemy.future import select
@@ -169,15 +192,15 @@ async def logout(
 ):
     token = payload.refresh_token
     if not token:
-        raise HTTPException(status_code=400, detail="Refresh токен обязателен")
+        raise bad_request(code="missing_refresh_token", message="Refresh токен обязателен")
     try:
         decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         if decoded.get("type") != "refresh":
-            raise HTTPException(status_code=400, detail="Некорректный токен")
+            raise bad_request(code="invalid_refresh_token", message="Некорректный токен")
         user_id = decoded.get("user_id")
         jti = decoded.get("jti")
     except JWTError:
-        raise HTTPException(status_code=401, detail="Недействительный refresh токен")
+        raise HTTPException(status_code=401, detail={"code": "invalid_refresh_token", "message": "Недействительный refresh токен"})
     from app.models.refresh_token import RefreshToken
     if payload.all_devices:
         await db.execute(

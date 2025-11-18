@@ -14,6 +14,7 @@ from app.models.location import Location
 from app.models.review import Review
 from app.models.associations import user_services
 from app.models.service import Service as ServiceModel
+from app.utils.locations import normalize_city_label
 
 
 router = APIRouter()
@@ -34,6 +35,7 @@ async def list_professionals(
         lng: Optional[float] = None,
         service_id: Optional[int] = None,
 ):
+    city_norm = normalize_city_label(city) or city
     # Admin: city-scoped search
     if current_user.user_type == UserType.ADMIN and not org_only:
         # Build base query to support sorting
@@ -41,7 +43,7 @@ async def list_professionals(
             select(UserModel)
             .join(Location, Location.id == UserModel.location_id, isouter=True)
             .where(
-                Location.city == city,
+                Location.city == city_norm,
                 UserModel.user_type.in_([UserType.MASTER, UserType.SALON])
             )
         )
@@ -74,7 +76,7 @@ async def list_professionals(
                 .join(user_services, user_services.c.user_id == UserModel.id)
                 .join(ServiceModel, ServiceModel.id == user_services.c.service_id)
                 .where(
-                    Location.city == city,
+                    Location.city == city_norm,
                     UserModel.user_type.in_([UserType.MASTER, UserType.SALON]),
                     ServiceModel.id == service_id,
                 )
@@ -83,7 +85,7 @@ async def list_professionals(
                 total_stmt = total_stmt.where((UserModel.name.ilike(f"%{q}%")) | (UserModel.short_description.ilike(f"%{q}%")))
             total = (await db.execute(total_stmt)).scalar_one()
         else:
-            total = await count_professionals_by_city(db, city=city, q=q)
+            total = await count_professionals_by_city(db, city=city_norm, q=q)
         return {"items": items, "skip": skip, "limit": limit, "total": total}
 
     # Org OWNER/MANAGER with org_only: list only their org masters
@@ -120,7 +122,7 @@ async def list_professionals(
         select(UserModel)
         .join(Location, Location.id == UserModel.location_id, isouter=True)
         .where(
-            Location.city == city,
+            Location.city == city_norm,
             UserModel.user_type.in_([UserType.MASTER, UserType.SALON])
         )
     )
@@ -151,7 +153,7 @@ async def list_professionals(
             .join(user_services, user_services.c.user_id == UserModel.id)
             .join(ServiceModel, ServiceModel.id == user_services.c.service_id)
             .where(
-                Location.city == city,
+                Location.city == city_norm,
                 UserModel.user_type.in_([UserType.MASTER, UserType.SALON]),
                 ServiceModel.id == service_id,
             )
@@ -160,7 +162,7 @@ async def list_professionals(
             total_stmt = total_stmt.where((UserModel.name.ilike(f"%{q}%")) | (UserModel.short_description.ilike(f"%{q}%")))
         total = (await db.execute(total_stmt)).scalar_one()
     else:
-        total = await count_professionals_by_city(db, city=city, q=q)
+        total = await count_professionals_by_city(db, city=city_norm, q=q)
     return {"items": items, "skip": skip, "limit": limit, "total": total}
 
 
